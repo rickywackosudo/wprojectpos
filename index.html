@@ -13,17 +13,8 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,700;1,800&display=swap">
-<script>
-(function () {
-  try {
-    var d = new Date(), k = d.getFullYear() + '-' + (d.getMonth() + 1) + '-' + d.getDate();
-    var reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
-    if (!reduce && localStorage.getItem('wpos-intro') !== k) document.documentElement.classList.add('intro-on');
-  } catch (e) {}
-})();
-</script>
 <style>
-/* Layout: clean white workspace. Big logo + gradient title, sticky paint-brush sub-menu, stats, ticket form beside the queue, dotted break, recap */
+/* Layout: sticky paint-brush sub-menu on top, an opening scene (floating logo, letters that assemble into the title on scroll), then stats, ticket form beside the queue, dotted break, recap */
 :root{
   --bg:#FFFFFF; --surface:#FFFFFF; --soft:#F6F7FC; --soft-2:#EEF1FA; --line:#E8EBF4; --line-2:#D8DDEB;
   --text:#151A33; --muted:#687090; --faint:#9BA2BC;
@@ -46,13 +37,12 @@
 *,*::before,*::after{box-sizing:border-box}
 [hidden]{display:none!important}
 html{background:var(--bg);-webkit-text-size-adjust:100%}
-html.intro-on body{overflow:hidden}
 body{
   margin:0;background:var(--bg);color:var(--text);
   font-family:var(--font);font-size:14px;line-height:1.5;font-weight:400;
   padding-left:max(16px,env(safe-area-inset-left,0px));
   padding-right:max(16px,env(safe-area-inset-right,0px));
-  padding-block:calc(24px + env(safe-area-inset-top,0px)) calc(64px + env(safe-area-inset-bottom,0px));
+  padding-block:env(safe-area-inset-top,0px) calc(64px + env(safe-area-inset-bottom,0px));
   -webkit-font-smoothing:antialiased;
 }
 body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:40;background:var(--bg)}
@@ -68,16 +58,45 @@ button,input,textarea{font:inherit;color:inherit}
 }
 h2.ttl,h3.ttl{font-size:21px}
 
-/* ---------- header ---------- */
-.top{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,2fr);align-items:center;gap:16px clamp(16px,4vw,52px)}
-.logo-btn{display:block;width:100%;max-width:400px;padding:0;border:0;background:none;cursor:pointer;justify-self:start;border-radius:24px}
-.logo-btn svg{display:block;width:100%;height:auto;transition:transform .4s cubic-bezier(.2,1.4,.4,1)}
-.logo-btn:hover svg{transform:rotate(-3deg) scale(1.02)}
-html.intro-on .logo-btn svg{visibility:hidden}
-.top-main{min-width:0;display:grid;gap:clamp(10px,2vw,20px);justify-items:start}
-h1.title{margin:0;display:grid;justify-items:start;font-size:clamp(46px,9.2vw,116px)}
-h1.title .ttl{font-size:1em;line-height:calc(.98em - 4px);letter-spacing:-.025em}
-.today{font-size:13px;color:var(--muted)}
+/* ---------- opening scene: floating logo, letters assemble into the title on scroll ---------- */
+:root{--vh:1vh}
+@supports (height:1svh){:root{--vh:1svh}}
+.scene{position:relative;--stage-h:calc(100 * var(--vh) - var(--nav-h) - 1px - env(safe-area-inset-top,0px));height:calc(max(var(--stage-h),420px) + 115 * var(--vh));margin-top:-22px}
+.stage{position:sticky;top:calc(var(--nav-h) + 1px + env(safe-area-inset-top,0px));height:max(var(--stage-h),420px);overflow:hidden;isolation:isolate}
+.hero{position:relative;height:100%;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,2fr);align-items:center;column-gap:clamp(16px,4vw,56px);padding-block:clamp(12px,3vh,36px)}
+.logo-slot{position:relative;width:100%;max-width:400px;justify-self:start}
+.logo-move{position:relative;transform-origin:50% 50%;will-change:transform}
+.logo-sway{position:relative;animation:sway 11.2s ease-in-out infinite}
+.logo-float{animation:bob 5.6s ease-in-out infinite}
+.logo-tilt{animation:tilt 7.6s ease-in-out infinite;transform-origin:50% 56%}
+.logo-tilt svg{display:block;width:100%;height:auto}
+.logo-shadow{position:absolute;left:20%;right:20%;bottom:-9%;height:8%;border-radius:50%;background:radial-gradient(closest-side,rgba(35,74,152,.24),rgba(35,74,152,0));animation:shade 5.6s ease-in-out infinite}
+@keyframes bob{0%,100%{transform:translate3d(0,-3%,0)}50%{transform:translate3d(0,3%,0)}}
+@keyframes sway{0%,100%{transform:translate3d(-1.6%,0,0)}50%{transform:translate3d(1.6%,0,0)}}
+@keyframes tilt{0%,100%{transform:rotate(-4.5deg)}50%{transform:rotate(4deg)}}
+@keyframes shade{0%,100%{transform:scale(.78);opacity:.5}50%{transform:scale(1);opacity:.95}}
+.title-slot{position:relative;min-width:0;container-type:inline-size}
+.cbl{margin:0;font-family:var(--font);font-weight:800;font-style:italic;font-size:clamp(52px,12vw,190px);font-size:min(25cqw,22 * var(--vh));line-height:.78;letter-spacing:0;padding-right:.12em}
+.cbl .w{display:block;white-space:nowrap}
+.cbl .ch{display:inline-block;margin-right:-.06em;mix-blend-mode:multiply;transform-origin:50% 62%;will-change:transform;backface-visibility:hidden}
+.cbl .wc{color:var(--pink)}
+.cbl .wb,.cbl .wl{color:var(--navy)}
+.hint{position:absolute;right:0;bottom:calc(14px + env(safe-area-inset-bottom,0px));z-index:5;display:inline-flex;align-items:center;gap:7px;padding:7px 12px 7px 14px;border-radius:999px;background:rgba(255,255,255,.92);border:1px solid var(--line);box-shadow:var(--shadow);font-size:11.5px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);pointer-events:none}
+.hint svg{width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round;animation:nudge 1.4s ease-in-out infinite}
+@keyframes nudge{0%,100%{transform:translateY(-2px)}50%{transform:translateY(3px)}}
+@media (max-width:759px), (orientation:portrait) and (max-width:1100px){
+  .hero{grid-template-columns:minmax(0,1fr);grid-template-rows:auto auto;align-content:center;justify-items:center;row-gap:clamp(14px,3.5vh,36px)}
+  .logo-slot{justify-self:center;width:min(60vw,34 * var(--vh));max-width:none}
+  .title-slot{width:100%}
+  .cbl{text-align:center;font-size:clamp(44px,22vw,150px);font-size:min(26cqw,15 * var(--vh));padding-right:0}
+}
+@media (prefers-reduced-motion: reduce){
+  .scene{height:auto;margin-top:0}
+  .stage{position:relative;top:auto}
+  .hint{display:none}
+}
+.today{font-size:12.5px;color:var(--muted);margin-right:4px;white-space:nowrap}
+@media (max-width:700px){.today{display:none}}
 
 /* ---------- sub-menu with paint brush ---------- */
 .subnav{position:sticky;top:env(safe-area-inset-top,0px);z-index:30;background:rgba(255,255,255,.92);-webkit-backdrop-filter:saturate(1.4) blur(10px);backdrop-filter:saturate(1.4) blur(10px);border-bottom:1px solid var(--line)}
@@ -342,14 +361,6 @@ dialog.settings::backdrop{background:rgba(21,26,51,.38);-webkit-backdrop-filter:
 .toast.show{opacity:1;transform:translate(-50%,0)}
 footer{text-align:center;color:var(--faint);font-size:12px}
 
-/* ---------- intro ---------- */
-#intro{position:fixed;inset:0;z-index:100;background:var(--bg);display:none;place-items:center}
-html.intro-on #intro{display:grid;animation:introBail .3s 7s forwards}
-@keyframes introBail{to{opacity:0;visibility:hidden}}
-#introSvg{width:min(78vw,60vh,470px);height:auto;overflow:visible;transform-origin:0 0}
-#intro .skip{position:absolute;right:max(16px,env(safe-area-inset-right,0px));bottom:calc(18px + env(safe-area-inset-bottom,0px));font-size:12.5px;font-weight:600;color:var(--muted);background:var(--soft);border:1px solid var(--line);border-radius:999px;padding:7px 14px;cursor:pointer}
-#intro .skip:hover{color:var(--text)}
-
 @media (prefers-reduced-motion: reduce){
   *,*::before,*::after{animation-duration:.001ms!important;animation-iteration-count:1!important;transition-duration:.001ms!important}
 }
@@ -368,37 +379,7 @@ html.intro-on #intro{display:grid;animation:introBail .3s 7s forwards}
   </defs>
 </svg>
 
-<div id="intro" aria-hidden="true">
-  <svg id="introSvg" viewBox="-70 -70 515 508">
-    <defs>
-      <filter id="goo" filterUnits="userSpaceOnUse" x="-70" y="-70" width="515" height="508" color-interpolation-filters="sRGB">
-        <feGaussianBlur stdDeviation="6"/>
-        <feColorMatrix values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 24 -10"/>
-      </filter>
-      <mask id="mkP" maskUnits="userSpaceOnUse" x="-70" y="-70" width="515" height="508"><g id="mkPg" filter="url(#goo)" fill="#fff"></g></mask>
-      <mask id="mkB" maskUnits="userSpaceOnUse" x="-70" y="-70" width="515" height="508"><g id="mkBg" filter="url(#goo)" fill="#fff"></g></mask>
-    </defs>
-    <rect id="introBox" x="0" y="0" width="375.276" height="367.89" fill="none"/>
-    <g mask="url(#mkB)"><use href="#lgB1"/></g>
-    <g id="looseP" filter="url(#goo)" fill="#EE2368"></g>
-    <g mask="url(#mkP)"><use href="#lgP"/></g>
-    <g mask="url(#mkB)"><use href="#lgB2"/></g>
-    <g id="looseB" filter="url(#goo)" fill="#234A98"></g>
-  </svg>
-  <button class="skip" id="skipIntro" type="button">Skip</button>
-</div>
-
 <div class="page">
-  <header class="top">
-    <button class="logo-btn" id="logoBtn" type="button" aria-label="Play the intro again">
-      <svg id="hdrLogo" viewBox="0 0 375.276 367.89" width="375" height="368" role="img" aria-label="The W Project logo"><use href="#lgB1"/><use href="#lgP"/><use href="#lgB2"/></svg>
-    </button>
-    <div class="top-main">
-      <h1 class="title"><span class="ttl">Order</span><span class="ttl">Board</span></h1>
-      <span class="today" id="today"></span>
-    </div>
-  </header>
-
   <nav class="subnav" aria-label="Sections">
     <div class="subnav-in">
       <div class="tabs" id="tabs">
@@ -413,6 +394,7 @@ html.intro-on #intro{display:grid;animation:introBail .3s 7s forwards}
         </span>
       </div>
       <div class="nav-right">
+        <span class="today" id="today"></span>
         <button class="sync" id="syncBtn" type="button" data-s="off"><i></i><span>Not connected</span></button>
         <button class="icon-btn" id="openSettings" type="button" aria-label="Settings" title="Settings">
           <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>
@@ -420,6 +402,25 @@ html.intro-on #intro{display:grid;animation:introBail .3s 7s forwards}
       </div>
     </div>
   </nav>
+
+  <section class="scene" id="scene" aria-labelledby="cbl">
+    <div class="stage" id="stage">
+      <div class="hero">
+        <div class="logo-slot" id="logoSlot">
+          <div class="logo-move" id="logoMove">
+            <span class="logo-shadow" aria-hidden="true"></span>
+            <div class="logo-sway"><div class="logo-float"><div class="logo-tilt">
+              <svg id="hdrLogo" viewBox="0 0 375.276 367.89" width="375" height="368" role="img" aria-label="The W Project logo"><use href="#lgB1"/><use href="#lgP"/><use href="#lgB2"/></svg>
+            </div></div></div>
+          </div>
+        </div>
+        <div class="title-slot">
+          <h1 class="cbl" id="cbl" aria-label="Create Beyond Limits"><span class="w wc" aria-hidden="true"><span class="ch">C</span><span class="ch">r</span><span class="ch">e</span><span class="ch">a</span><span class="ch">t</span><span class="ch">e</span></span><span class="w wb" aria-hidden="true"><span class="ch">B</span><span class="ch">e</span><span class="ch">y</span><span class="ch">o</span><span class="ch">n</span><span class="ch">d</span></span><span class="w wl" aria-hidden="true"><span class="ch">L</span><span class="ch">i</span><span class="ch">m</span><span class="ch">i</span><span class="ch">t</span><span class="ch">s</span></span></h1>
+        </div>
+      </div>
+      <div class="hint" id="hint" aria-hidden="true">Scroll<svg viewBox="0 0 24 24"><path d="M12 5v14M6 13l6 6 6-6"/></svg></div>
+    </div>
+  </section>
 
   <section class="stats" aria-label="Quick look">
     <div class="stat">
@@ -591,9 +592,9 @@ html.intro-on #intro{display:grid;animation:introBail .3s 7s forwards}
       <div class="set-row"><button class="mini" type="button" id="dlCsv">Download CSV</button></div>
     </div>
     <div class="set-sec">
-      <h3>Intro</h3>
-      <p>The paint intro plays once a day. Tap the logo any time to see it again. App version <span id="appVer"></span>.</p>
-      <div class="set-row"><button class="mini" type="button" id="replayIntro">Play intro</button><button class="mini plain" type="button" id="forgetConn">Disconnect this device</button></div>
+      <h3>This device</h3>
+      <p>Remove the Google Sheet connection from this device. Orders already saved here stay. App version <span id="appVer"></span>.</p>
+      <div class="set-row"><button class="mini plain" type="button" id="forgetConn">Disconnect this device</button></div>
     </div>
   </form>
 </dialog>
@@ -604,13 +605,12 @@ html.intro-on #intro{display:grid;animation:introBail .3s 7s forwards}
 (() => {
 'use strict';
 const $ = (s, r = document) => r.querySelector(s);
-const NS = 'http://www.w3.org/2000/svg';
 const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)');
 const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 const MONTHS_FULL = ['January','February','March','April','May','June','July','August','September','October','November','December'];
 const DAYS = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
 const BODY_SUGGEST = ['Avante Mk.III','Aero Avante','Mach Frame','Beak Spider','Thunder Shot Mk.II','Dash-1 Emperor','Magnum Saber','Sonic Saber','Cyclone Magnum','Hurricane Sonic','Ray Spear','Neo VQS','Exflowly','Blast Arrow','Avante Mk.II'];
-const LS = { orders: 'wpos-orders-v1', queue: 'wpos-queue-v1', cfg: 'wpos-config-v1', meta: 'wpos-meta-v1', intro: 'wpos-intro' };
+const LS = { orders: 'wpos-orders-v1', queue: 'wpos-queue-v1', cfg: 'wpos-config-v1', meta: 'wpos-meta-v1' };
 
 const pad = n => String(n).padStart(2, '0');
 const isoDate = d => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
@@ -671,7 +671,7 @@ function enqueue(op) {
 class SyncError extends Error { constructor(code) { super(code); this.code = code; } }
 // Normal route is fetch. If the browser blocks it (CORS, extensions, some networks),
 // fall back to a script-tag request, which Apps Script answers as JSONP.
-const APP_VERSION = '1.4';
+const APP_VERSION = '1.5';
 const lastDetail = { fetch: '', backup: '', proxy: '' };
 let transport = lsGet('wpos-transport', 'fetch') === 'jsonp' ? 'jsonp' : 'fetch';
 function jsonp(params) {
@@ -1397,8 +1397,6 @@ async function connectFromLink() {
     if (ok) toast('This device is connected.'); else openSettings();
   } catch (e) { toast('That setup link is not valid. Copy it again from the other device.'); }
 }
-$('#replayIntro').addEventListener('click', () => { closeSettings(); playIntro(); });
-$('#logoBtn').addEventListener('click', () => playIntro());
 
 /* ================= toast ================= */
 let toastTimer = null;
@@ -1407,135 +1405,91 @@ function toast(msg) {
   clearTimeout(toastTimer); toastTimer = setTimeout(() => t.classList.remove('show'), 2400);
 }
 
-/* ================= intro: paint spill forming the logo ================= */
+/* ================= opening scene: letters fall into "Create Beyond Limits" as you scroll ================= */
 const clamp01 = v => v < 0 ? 0 : v > 1 ? 1 : v;
-const eo3 = t => 1 - Math.pow(1 - t, 3);
-const eo4 = t => 1 - Math.pow(1 - t, 4);
 const eio = t => t < .5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
-const eback = t => { const c1 = 1.5, c3 = c1 + 1; return 1 + c3 * Math.pow(t - 1, 3) + c1 * Math.pow(t - 1, 2); };
+const eback = t => { const c1 = 1.25, c3 = c1 + 1; return 1 + c3 * Math.pow(t - 1, 3) + c1 * Math.pow(t - 1, 2); };
 function mulberry32(a) { return function () { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
 
-const FLY_AT = 2.35, FLY_DUR = .65;
-let introRaf = 0, introRunning = false, flyAnim = null;
+const scene = $('#scene'), stage = $('#stage'), cbl = $('#cbl'), logoSlot = $('#logoSlot'), logoMove = $('#logoMove'), hint = $('#hint');
+const chars = [...cbl.querySelectorAll('.ch')];
+const narrowMQ = matchMedia('(max-width:759px), (orientation:portrait) and (max-width:1100px)');
+const LETTER_DUR = .58;
+let hero = null, heroRaf = 0, heroLastA = -1, heroRz = 0;
 
-function buildParticles() {
-  const groups = { lp: $('#looseP'), mp: $('#mkPg'), lb: $('#looseB'), mb: $('#mkBg') };
-  Object.values(groups).forEach(g => { g.textContent = ''; });
-  const R = mulberry32(11);
+// Where every letter starts (scattered) relative to where it ends (in the title).
+function heroMeasure() {
+  const W = stage.clientWidth, H = stage.clientHeight;
+  if (!W || !H) { hero = null; return; }
+  const sr = stage.getBoundingClientRect(), hr = cbl.getBoundingClientRect(), lr = logoSlot.getBoundingClientRect();
+  const narrow = narrowMQ.matches;
+  const R = mulberry32(narrow ? 41 : 17);
   const rnd = (a, b) => a + (b - a) * R();
-  const P = [];
-  const add = (o, keys) => {
-    o.els = keys.map(k => { const c = document.createElementNS(NS, 'circle'); c.setAttribute('r', '0'); c.setAttribute('cx', o.x0); c.setAttribute('cy', o.y0); groups[k].appendChild(c); return c; });
-    P.push(o);
-  };
-  // sh = {core, arm, drop, drip}: when each kind of loose paint starts to pull back
-  const splash = (cx, cy, t0, core, armN, armL, dropN, dropD, dripN, sh, loose, mask) => {
-    add({ x0: cx, y0: cy, x1: cx, y1: cy, r: core, t0, dur: .01, rIn: .45, rE: eo4, s0: sh.core, sDur: .42 }, [loose, mask]);
-    for (let k = 0; k < armN; k++) {
-      const a = (k / armN) * Math.PI * 2 + rnd(-.25, .25), L = rnd(armL[0], armL[1]);
-      [[.52, .22], [.82, .15], [1.08, .085]].forEach(([f, rr], j) => {
-        add({ x0: cx, y0: cy, x1: cx + Math.cos(a) * L * f, y1: cy + Math.sin(a) * L * f, r: core * rr * rnd(.8, 1.25),
-          t0: t0 + .02 + j * .03, dur: rnd(.28, .42), pE: eo3, rIn: .2, rE: eback, s0: sh.arm + .04 * j + rnd(0, .08), sDur: .3 }, j < 2 ? [loose, mask] : [loose]);
-      });
+  const n = chars.length;
+  const start = { x: W / 2, y: H * (narrow ? .38 : .42) };
+  const logoR = Math.max(lr.width, lr.height) * .58;
+  const air = new Set();
+  while (air.size < Math.round(n / 3)) air.add(Math.floor(R() * n));
+  const L = chars.map((el, i) => {
+    const nx = hr.left - sr.left + el.offsetLeft + el.offsetWidth / 2;
+    const ny = hr.top - sr.top + el.offsetTop + el.offsetHeight / 2;
+    let sx, sy, rot;
+    if (air.has(i)) {
+      // a few letters drift in the air around the logo
+      let k = 0;
+      do { sx = rnd(.06, .94) * W; sy = rnd(.06, .62) * H; k++; } while (Math.hypot(sx - start.x, sy - start.y) < logoR && k < 80);
+      rot = rnd(-40, 40);
+    } else {
+      // the rest lie in a heap at the bottom, some cut off by the edge
+      sx = W * (narrow ? rnd(.08, .92) : rnd(.26, .74));
+      sy = H * (narrow ? rnd(.8, 1) : rnd(.76, .98));
+      rot = rnd(-85, 85);
     }
-    for (let k = 0; k < dropN; k++) {
-      const a = rnd(0, Math.PI * 2), d = rnd(dropD[0], dropD[1]);
-      add({ x0: cx, y0: cy, x1: cx + Math.cos(a) * d, y1: cy + Math.sin(a) * d * .92, r: rnd(2.2, 6.5), t0: t0 + rnd(.02, .1), dur: rnd(.26, .4), pE: eo3, rIn: .08, rE: eo3, s0: sh.drop + rnd(0, .2), sDur: .3 }, [loose]);
-    }
-    for (let k = 0; k < dripN; k++) {
-      const a = rnd(.32, .68) * Math.PI, sx = cx + Math.cos(a) * core * .86, sy = cy + Math.sin(a) * core * .86;
-      add({ x0: sx, y0: sy, x1: sx, y1: sy + rnd(core * .3, core * .55), r: rnd(core * .04, core * .06) + 3, t0: t0 + rnd(.25, .4), dur: rnd(.6, .85), pE: eio, rIn: .15, rE: eo3, s0: sh.drip + rnd(0, .1), sDur: .3 }, [loose]);
-    }
-  };
-  // 1. pink lands, spreads, then pulls back so the white lettering shows through the circle
-  splash(180, 182, .05, 150, 11, [150, 205], 18, [185, 260], 6, { core: .72, arm: .6, drop: .55, drip: .95 }, 'lp', 'mp');
-  add({ x0: 180, y0: 182, x1: 180, y1: 182, r: 250, t0: .18, dur: .01, rIn: .55, rE: eio }, ['mp']);
-  // 2. four blue splashes hit and spread outward, drawing the outline as they go
-  [[52, 96, .78, 54], [312, 58, .9, 58], [334, 292, 1.02, 52], [96, 300, 1.14, 56]].forEach(([x, y, t, c]) => {
-    splash(x, y, t, c, 8, [70, 110], 9, [95, 150], 2, { core: t + .4, arm: t + .34, drop: t + .45, drip: t + .62 }, 'lb', 'mb');
-    add({ x0: x, y0: y, x1: x, y1: y, r: 265, t0: t + .06, dur: .01, rIn: .95, rE: eio }, ['mb']);
+    const d = clamp01(.34 * (i / (n - 1)) + rnd(-.05, .05));
+    return { el, dx: sx - nx, dy: sy - ny, rot, d, ax: rnd(-1, 1) * W * .05, ay: -rnd(.02, .08) * H };
   });
-  return P;
+  const lcx = lr.left - sr.left + lr.width / 2, lcy = lr.top - sr.top + lr.height / 2;
+  hero = { L, H, logo: { dx: start.x - lcx, dy: start.y - lcy, s: narrow ? 1.06 : 1, r: -8 } };
+  heroLastA = -1;
 }
-function drawParticles(P, t) {
-  for (const p of P) {
-    const u = p.dur > .02 ? clamp01((t - p.t0) / p.dur) : (t >= p.t0 ? 1 : 0);
-    const e = p.pE ? p.pE(u) : u;
-    let r = t < p.t0 ? 0 : p.r * p.rE(clamp01((t - p.t0) / p.rIn));
-    if (p.s0 != null && t > p.s0) r *= 1 - eio(clamp01((t - p.s0) / p.sDur));
-    if (r < 0) r = 0;
-    const x = p.x0 + (p.x1 - p.x0) * e, y = p.y0 + (p.y1 - p.y0) * e;
-    const rs = r.toFixed(2), xs = x.toFixed(2), ys = y.toFixed(2);
-    for (const el of p.els) { el.setAttribute('r', rs); el.setAttribute('cx', xs); el.setAttribute('cy', ys); }
+function heroRender(a) {
+  if (!hero || a === heroLastA) return;
+  heroLastA = a;
+  for (const p of hero.L) {
+    const t = clamp01((a - p.d) / LETTER_DUR);
+    if (t >= 1) { p.el.style.transform = 'none'; continue; }
+    const k = 1 - eback(t), arc = Math.sin(Math.PI * t);
+    p.el.style.transform = `translate3d(${(p.dx * k + p.ax * arc).toFixed(1)}px,${(p.dy * k + p.ay * arc).toFixed(1)}px,0) rotate(${(p.rot * k).toFixed(2)}deg)`;
   }
+  const tl = eio(clamp01(a / .8)), k = 1 - tl, lift = -Math.sin(Math.PI * tl) * hero.H * .06;
+  logoMove.style.transform = tl >= 1 ? 'none'
+    : `translate3d(${(hero.logo.dx * k).toFixed(1)}px,${(hero.logo.dy * k + lift).toFixed(1)}px,0) rotate(${(hero.logo.r * k).toFixed(2)}deg) scale(${(1 + (hero.logo.s - 1) * k).toFixed(4)})`;
+  hint.style.opacity = (1 - clamp01(a / .1)).toFixed(3);
 }
-function markIntroSeen() {
-  try { const d = new Date(); localStorage.setItem(LS.intro, d.getFullYear() + '-' + (d.getMonth() + 1) + '-' + d.getDate()); } catch (e) {}
+// 0 = scattered, 1 = assembled. The title is complete at 80% of the scene's scroll distance.
+function heroAmount() {
+  if (reduceMotion.matches) return 1;
+  const dist = scene.offsetHeight - stage.offsetHeight;
+  if (dist <= 0) return 1;
+  const top = parseFloat(getComputedStyle(stage).top) || 0;
+  return clamp01(clamp01((top - scene.getBoundingClientRect().top) / dist) / .8);
 }
-function endIntro(fast) {
-  cancelAnimationFrame(introRaf);
-  introRunning = false;
-  markIntroSeen();
-  const intro = $('#intro');
-  const done = () => {
-    document.documentElement.classList.remove('intro-on');
-    intro.getAnimations().forEach(a => a.cancel());
-    $('#introSvg').getAnimations().forEach(a => a.cancel());
-    intro.style.cssText = '';
-    $('#introSvg').style.cssText = '';
-    flyAnim = null;
-    placeBrush(tabs.find(t => t.dataset.sec === activeSec), true);
-  };
-  if (fast) {
-    intro.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 220, easing: 'ease-out' }).onfinish = done;
-  } else done();
-}
-function fly() {
-  const svg = $('#introSvg'), intro = $('#intro');
-  const box = $('#introBox').getBoundingClientRect();
-  const hdr = $('#hdrLogo').getBoundingClientRect();
-  const sr = svg.getBoundingClientRect();
-  if (!box.width || !hdr.width || hdr.bottom < 0) { endIntro(true); return; }
-  const k = hdr.width / box.width;
-  const ox = box.left - sr.left, oy = box.top - sr.top;
-  const tx = hdr.left - box.left, ty = hdr.top - box.top;
-  svg.style.transformOrigin = `${ox}px ${oy}px`;
-  flyAnim = svg.animate([{ transform: 'none' }, { transform: `translate(${tx}px,${ty}px) scale(${k})` }], { duration: FLY_DUR * 1000, easing: 'cubic-bezier(.65,0,.25,1)', fill: 'forwards' });
-  intro.animate([{ backgroundColor: 'rgba(255,255,255,1)' }, { backgroundColor: 'rgba(255,255,255,0)' }], { duration: FLY_DUR * 1000, easing: 'ease-in', fill: 'forwards' });
-  $('#skipIntro').style.visibility = 'hidden';
-  flyAnim.onfinish = () => endIntro(false);
-}
-function playIntro() {
-  if (reduceMotion.matches || introRunning) return;
-  scrollTo(0, 0);
-  document.documentElement.classList.add('intro-on');
-  const intro = $('#intro');
-  intro.style.animation = 'none';
-  $('#skipIntro').style.visibility = '';
-  const P = buildParticles();
-  drawParticles(P, 0);
-  introRunning = true;
-  const start = performance.now();
-  let flew = false;
-  const step = now => {
-    const t = (now - start) / 1000;
-    drawParticles(P, Math.min(t, FLY_AT));
-    if (t >= FLY_AT && !flew) { flew = true; fly(); return; }
-    introRaf = requestAnimationFrame(step);
-  };
-  introRaf = requestAnimationFrame(step);
-}
-$('#skipIntro').addEventListener('click', () => endIntro(true));
+function heroTick() { heroRaf = 0; heroRender(heroAmount()); }
+function heroSetup() { heroMeasure(); heroTick(); }
+addEventListener('scroll', () => { if (!heroRaf) heroRaf = requestAnimationFrame(heroTick); }, { passive: true });
+addEventListener('resize', () => { clearTimeout(heroRz); heroRz = setTimeout(heroSetup, 120); });
+if (narrowMQ.addEventListener) narrowMQ.addEventListener('change', heroSetup);
+if (reduceMotion.addEventListener) reduceMotion.addEventListener('change', heroSetup);
 
 /* ================= boot ================= */
 const t0 = new Date();
 $('#today').textContent = `${DAYS[t0.getDay()]}, ${t0.getDate()} ${MONTHS[t0.getMonth()]} ${t0.getFullYear()}`;
 renderAll();
 updateSyncUI();
-const introOn = document.documentElement.classList.contains('intro-on');
-placeBrush(tabs[0], !introOn);
-if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => placeBrush(tabs.find(t => t.dataset.sec === activeSec), false));
-if (introOn) requestAnimationFrame(() => playIntro());
+heroSetup();
+placeBrush(tabs[0], true);
+if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { heroSetup(); placeBrush(tabs.find(t => t.dataset.sec === activeSec), false); });
+addEventListener('load', heroSetup);
 $('#appVer').textContent = APP_VERSION;
 if (/^#connect=/.test(location.hash)) connectFromLink(); else if (configured()) syncNow();
 })();
