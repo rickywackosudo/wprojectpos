@@ -1,0 +1,1544 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>W Project POS</title>
+<meta name="theme-color" content="#FFFFFF">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="W Project">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="icon" type="image/png" href="icon-180.png">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,700;1,800&display=swap">
+<script>
+(function () {
+  try {
+    var d = new Date(), k = d.getFullYear() + '-' + (d.getMonth() + 1) + '-' + d.getDate();
+    var reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (!reduce && localStorage.getItem('wpos-intro') !== k) document.documentElement.classList.add('intro-on');
+  } catch (e) {}
+})();
+</script>
+<style>
+/* Layout: clean white workspace. Big logo + gradient title, sticky paint-brush sub-menu, stats, ticket form beside the queue, dotted break, recap */
+:root{
+  --bg:#FFFFFF; --surface:#FFFFFF; --soft:#F6F7FC; --soft-2:#EEF1FA; --line:#E8EBF4; --line-2:#D8DDEB;
+  --text:#151A33; --muted:#687090; --faint:#9BA2BC;
+  --navy:#234A98; --blue:#2F5BEA; --violet:#7B4DEB; --pink:#EE2368; --tosca:#12A594; --yellow:#E8A50C;
+  --blue-soft:#EDF2FF; --violet-soft:#F2EDFE; --pink-soft:#FDECF2; --tosca-soft:#E3F6F2; --yellow-soft:#FFF5DB;
+  --blue-text:#2149C4; --violet-text:#5A31C7; --pink-text:#BE1A50; --tosca-text:#0A766B; --yellow-text:#835800;
+  --grad:linear-gradient(100deg,#234A98 0%,#2F5BEA 34%,#7B4DEB 66%,#EE2368 100%);
+  --grad-btn:linear-gradient(100deg,#2F5BEA 0%,#7B4DEB 62%,#C4479B 100%);
+  --grad-bar:linear-gradient(180deg,#7B4DEB 0%,#2F5BEA 100%);
+  --grad-pale:linear-gradient(90deg,#D3DCFB,#E0D6FB);
+  --shadow:0 1px 2px rgba(22,32,84,.04),0 6px 20px rgba(36,56,140,.06);
+  --shadow-lg:0 2px 6px rgba(22,32,84,.05),0 18px 44px rgba(36,56,140,.10);
+  --tip-bg:#151A33; --tip-fg:#FFFFFF;
+  --font:"Plus Jakarta Sans",system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  --plot-h:210px; --nav-h:56px;
+  color-scheme:light;
+}
+@media (max-width:560px){:root{--plot-h:180px}}
+
+*,*::before,*::after{box-sizing:border-box}
+[hidden]{display:none!important}
+html{background:var(--bg);-webkit-text-size-adjust:100%}
+html.intro-on body{overflow:hidden}
+body{
+  margin:0;background:var(--bg);color:var(--text);
+  font-family:var(--font);font-size:14px;line-height:1.5;font-weight:400;
+  padding-left:max(16px,env(safe-area-inset-left,0px));
+  padding-right:max(16px,env(safe-area-inset-right,0px));
+  padding-block:calc(24px + env(safe-area-inset-top,0px)) calc(64px + env(safe-area-inset-bottom,0px));
+  -webkit-font-smoothing:antialiased;
+}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:40;background:var(--bg)}
+button,input,textarea{font:inherit;color:inherit}
+:focus-visible{outline:2.5px solid var(--blue);outline-offset:2px}
+.sr{position:absolute!important;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.page{max-width:1180px;margin:0 auto;display:grid;gap:22px}
+
+/* gradient headings */
+.ttl{margin:0;font-weight:800;font-style:italic;letter-spacing:-.015em;line-height:1.12;color:var(--navy);display:inline-block;padding-right:.14em;text-wrap:balance}
+@supports ((-webkit-background-clip:text) or (background-clip:text)){
+  .ttl{background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent;-webkit-text-fill-color:transparent}
+}
+h2.ttl,h3.ttl{font-size:21px}
+
+/* ---------- header ---------- */
+.top{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,2fr);align-items:center;gap:16px clamp(16px,4vw,52px)}
+.logo-btn{display:block;width:100%;max-width:400px;padding:0;border:0;background:none;cursor:pointer;justify-self:start;border-radius:24px}
+.logo-btn svg{display:block;width:100%;height:auto;transition:transform .4s cubic-bezier(.2,1.4,.4,1)}
+.logo-btn:hover svg{transform:rotate(-3deg) scale(1.02)}
+html.intro-on .logo-btn svg{visibility:hidden}
+.top-main{min-width:0;display:grid;gap:clamp(10px,2vw,20px);justify-items:start}
+h1.title{margin:0;display:grid;justify-items:start;font-size:clamp(46px,9.2vw,116px)}
+h1.title .ttl{font-size:1em;line-height:calc(.98em - 4px);letter-spacing:-.025em}
+.today{font-size:13px;color:var(--muted)}
+
+/* ---------- sub-menu with paint brush ---------- */
+.subnav{position:sticky;top:env(safe-area-inset-top,0px);z-index:30;background:rgba(255,255,255,.92);-webkit-backdrop-filter:saturate(1.4) blur(10px);backdrop-filter:saturate(1.4) blur(10px);border-bottom:1px solid var(--line)}
+.subnav-in{max-width:1180px;margin:0 auto;height:var(--nav-h);display:flex;align-items:center;justify-content:space-between;gap:12px}
+.tabs{position:relative;display:flex;gap:6px;align-items:center;height:100%}
+.tab{position:relative;z-index:1;display:inline-flex;align-items:center;height:100%;padding:0 12px;font-size:14.5px;font-weight:600;color:var(--muted);text-decoration:none;transition:color .2s}
+.tab:hover{color:var(--text)}
+.tab[aria-current="true"]{color:var(--text)}
+.brush{position:absolute;left:0;bottom:7px;height:9px;width:0;pointer-events:none;transition:left .45s cubic-bezier(.3,1.2,.4,1),width .45s cubic-bezier(.3,1.2,.4,1)}
+.brush svg{position:absolute;inset:0;width:100%;height:100%;overflow:visible}
+.brush .stroke{clip-path:inset(0 0 0 0)}
+.brush.paint .stroke{animation:wipe .5s cubic-bezier(.4,.1,.2,1) both}
+@keyframes wipe{from{clip-path:inset(0 100% 0 0)}to{clip-path:inset(0 0 0 0)}}
+.drip{position:absolute;left:66%;top:5px;width:4px;height:9px;border-radius:0 0 3px 3px;background:#8F49D6;transform-origin:top}
+.drip::after{content:"";position:absolute;left:50%;bottom:-3px;width:7px;height:7px;margin-left:-3.5px;border-radius:50%;background:inherit}
+.brush.paint .drip{animation:drip .9s .32s cubic-bezier(.5,0,.3,1.4) both}
+@keyframes drip{0%{transform:scaleY(0);opacity:0}15%{opacity:1}100%{transform:scaleY(1);opacity:1}}
+.splat-dot{position:absolute;width:4px;height:4px;border-radius:50%}
+.brush.paint .splat-dot{animation:dot .5s .38s ease-out both}
+@keyframes dot{0%{opacity:0;transform:scale(0)}60%{opacity:1;transform:scale(1.15)}100%{opacity:1;transform:scale(1)}}
+.nav-right{display:flex;align-items:center;gap:6px}
+.sync{display:inline-flex;align-items:center;gap:7px;font-size:12px;font-weight:500;color:var(--muted);background:var(--soft);border:1px solid var(--line);padding:6px 11px;border-radius:999px;white-space:nowrap;cursor:pointer}
+.sync:hover{border-color:var(--line-2);color:var(--text)}
+.sync i{width:7px;height:7px;border-radius:50%;background:var(--faint);flex:none}
+.sync[data-s="ok"] i{background:var(--tosca)}
+.sync[data-s="syncing"] i{background:var(--yellow);animation:blink 1s infinite}
+.sync[data-s="offline"] i,.sync[data-s="pin"] i,.sync[data-s="setup"] i{background:var(--pink)}
+@keyframes blink{50%{opacity:.3}}
+.icon-btn{width:34px;height:34px;display:grid;place-items:center;border-radius:10px;border:0;background:transparent;color:var(--muted);cursor:pointer;transition:background .15s,color .15s}
+.icon-btn svg{width:17px;height:17px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.icon-btn:hover{background:var(--blue-soft);color:var(--blue-text)}
+@media (max-width:420px){.sync span{max-width:92px;overflow:hidden;text-overflow:ellipsis}.tab{padding:0 9px}}
+
+section[id]{scroll-margin-top:calc(var(--nav-h) + env(safe-area-inset-top,0px) + 14px)}
+
+/* ---------- stats ---------- */
+.stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px}
+.stat{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:14px 16px;display:flex;gap:12px;align-items:center;box-shadow:var(--shadow);min-width:0}
+.ico{width:40px;height:40px;border-radius:12px;display:grid;place-items:center;flex:none}
+.ico svg{width:19px;height:19px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.ico.b{background:var(--blue-soft);color:var(--blue-text)}
+.ico.v{background:var(--violet-soft);color:var(--violet-text)}
+.ico.y{background:var(--yellow-soft);color:var(--yellow-text)}
+.ico.p{background:var(--pink-soft);color:var(--pink-text)}
+.stat-txt{display:grid;min-width:0}
+.stat .k{font-size:12.5px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.stat .v{font-size:24px;font-weight:700;line-height:1.2;font-variant-numeric:tabular-nums}
+.stat.hot .v{color:var(--pink-text)}
+@media (max-width:760px){.stats{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.stat{padding:12px}.ico{width:34px;height:34px;border-radius:10px}.stat .v{font-size:21px}}
+
+/* ---------- work area ---------- */
+.work{display:grid;grid-template-columns:minmax(0,350px) minmax(0,1fr);gap:22px;align-items:start}
+@media (max-width:980px){.work{grid-template-columns:minmax(0,1fr)}}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:20px;padding:20px;box-shadow:var(--shadow)}
+
+.ticket{display:grid;gap:15px;transition:border-color .2s,box-shadow .2s}
+@media (min-width:981px) and (min-height:860px){.ticket{position:sticky;top:calc(var(--nav-h) + 16px + env(safe-area-inset-top,0px))}}
+.ticket.editing{border-color:var(--violet);box-shadow:0 0 0 3px var(--violet-soft),var(--shadow-lg)}
+.ticket-head{display:flex;justify-content:space-between;align-items:baseline;gap:10px}
+.ticket-no{color:var(--faint);font-size:12.5px;font-variant-numeric:tabular-nums}
+.field{display:grid;gap:6px;min-width:0}
+.lbl{font-size:12.5px;font-weight:600;color:var(--text)}
+.lbl em{font-style:normal;font-weight:400;color:var(--faint)}
+.inp{width:100%;font-size:14px;color:var(--text);background:var(--soft);border:1px solid var(--line);border-radius:12px;padding:10px 12px;transition:border-color .15s,box-shadow .15s,background .15s}
+.inp::placeholder{color:var(--faint)}
+.inp:hover{border-color:var(--line-2)}
+.inp:focus{outline:none;border-color:var(--blue);box-shadow:0 0 0 3px rgba(47,91,234,.14);background:var(--surface)}
+textarea.inp{min-height:84px;resize:vertical}
+textarea.inp.short{min-height:62px}
+.pair{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px}
+.pair.bq{grid-template-columns:minmax(0,1fr) auto}
+.stepper{display:flex;align-items:center;border:1px solid var(--line);border-radius:12px;background:var(--soft);overflow:hidden;height:43px}
+.stepper button{width:34px;height:100%;border:0;background:transparent;color:var(--blue-text);font-size:18px;font-weight:600;cursor:pointer;transition:background .15s}
+.stepper button:hover{background:var(--blue-soft)}
+.stepper input{width:38px;text-align:center;border:0;background:transparent;font-weight:600;font-size:15px;color:var(--text);-moz-appearance:textfield;appearance:textfield;padding:0}
+.stepper input::-webkit-outer-spin-button,.stepper input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+.stepper input:focus{outline:none}
+.stepper:focus-within{border-color:var(--blue);box-shadow:0 0 0 3px rgba(47,91,234,.14);background:var(--surface)}
+.quick{display:flex;flex-wrap:wrap;gap:6px}
+.quick button{font-size:12px;font-weight:500;padding:4px 10px;border-radius:999px;border:1px solid var(--line);background:var(--surface);color:var(--muted);cursor:pointer;transition:all .15s}
+.quick button:hover{border-color:var(--blue);color:var(--blue-text);background:var(--blue-soft)}
+.form-error{margin:0;color:var(--pink-text);font-size:13px;font-weight:500}
+.form-error:empty{display:none}
+.form-actions{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.btn-main{position:relative;flex:1;font-weight:700;font-size:14px;color:#fff;background:var(--grad-btn);border:0;border-radius:12px;padding:13px 18px;cursor:pointer;box-shadow:0 8px 20px rgba(91,66,220,.26);transition:transform .15s,box-shadow .15s}
+.btn-main::after{content:"";position:absolute;left:72%;top:100%;width:5px;height:0;border-radius:0 0 4px 4px;background:#A445C0;transition:height .35s cubic-bezier(.5,0,.3,1.4)}
+.btn-main:hover{transform:translateY(-1px);box-shadow:0 12px 26px rgba(91,66,220,.32)}
+.btn-main:hover::after{height:8px}
+.btn-main:active{transform:translateY(1px)}
+.btn-main:disabled{opacity:.45;cursor:not-allowed;transform:none;box-shadow:none}
+.btn-ghost{border:1px solid var(--line);background:var(--surface);color:var(--muted);font-weight:600;border-radius:12px;padding:12px 16px;cursor:pointer}
+.btn-ghost:hover{color:var(--text);border-color:var(--line-2)}
+
+/* ---------- board ---------- */
+.board{container-type:inline-size;display:grid;gap:14px;min-width:0}
+.board-head{display:flex;flex-wrap:wrap;gap:10px 14px;align-items:center;justify-content:space-between}
+.filters{display:flex;flex-wrap:wrap;gap:4px;background:var(--soft);border:1px solid var(--line);border-radius:999px;padding:3px}
+.pill{font-size:12.5px;font-weight:600;padding:5px 12px;border-radius:999px;border:0;background:transparent;color:var(--muted);cursor:pointer;display:inline-flex;gap:6px;align-items:center;transition:all .2s}
+.pill b{font-weight:600;font-variant-numeric:tabular-nums;font-size:11.5px;color:var(--faint)}
+.pill:hover{color:var(--text)}
+.pill[aria-pressed="true"]{background:var(--surface);color:var(--text);box-shadow:0 1px 3px rgba(22,32,84,.1)}
+.pill[aria-pressed="true"] b{color:var(--blue-text)}
+.pill.late-pill b{color:var(--pink-text)}
+.search{position:relative;display:block}
+.search svg{position:absolute;left:12px;top:50%;transform:translateY(-50%);width:16px;height:16px;stroke:var(--faint);fill:none;stroke-width:2;stroke-linecap:round}
+.search .inp{padding-left:36px;padding-block:9px}
+.banner{display:flex;flex-wrap:wrap;gap:8px 12px;align-items:center;justify-content:space-between;background:var(--violet-soft);border-radius:12px;padding:10px 14px;font-size:13px}
+.banner p{margin:0}
+.mini{font-size:12px;font-weight:600;padding:5px 11px;border-radius:9px;border:1px solid var(--line-2);background:var(--surface);color:var(--text);cursor:pointer}
+.mini:hover{border-color:var(--violet)}
+.mini.danger{background:var(--pink);color:#fff;border-color:var(--pink)}
+.mini.plain{color:var(--muted)}
+
+.list{list-style:none;margin:0;padding:0}
+.row{position:relative;display:grid;grid-template-columns:28px 42px minmax(0,1fr) minmax(160px,220px) auto;grid-template-areas:"check qty main meta act";gap:8px 14px;align-items:center;padding:13px 6px;border-top:1px solid var(--line);border-radius:4px}
+.row:first-child{border-top:0}
+.row:hover{background:linear-gradient(90deg,var(--soft),transparent 85%)}
+.row.enter{animation:rowIn .45s cubic-bezier(.2,1.1,.4,1) both}
+@keyframes rowIn{from{opacity:0;transform:translateY(8px)}}
+.row.is-late::before{content:"";position:absolute;left:-10px;top:22%;bottom:22%;width:3px;border-radius:3px;background:var(--pink)}
+.cap{grid-area:check;position:relative;width:26px;height:26px;display:block;cursor:pointer}
+.cap input{position:absolute;inset:0;margin:0;opacity:0;cursor:pointer;z-index:1}
+.cap-ui{width:26px;height:26px;border-radius:50%;border:2px solid var(--line-2);background:var(--surface);display:grid;place-items:center;transition:border-color .2s,background .2s,transform .3s cubic-bezier(.2,1.6,.4,1)}
+.cap-ui svg{width:14px;height:14px;stroke:#fff;stroke-width:3.2;stroke-linecap:round;stroke-linejoin:round;fill:none;stroke-dasharray:26;stroke-dashoffset:26}
+.cap:hover .cap-ui{border-color:var(--blue);transform:scale(1.08)}
+.cap input:checked + .cap-ui{background:var(--grad-btn);border-color:transparent}
+.cap input:checked + .cap-ui svg{stroke-dashoffset:0}
+.row.flash .cap-ui{animation:capPop .45s cubic-bezier(.2,1.6,.4,1)}
+.row.flash .cap-ui svg{animation:draw .35s .05s ease both}
+@keyframes capPop{0%{transform:scale(.7)}60%{transform:scale(1.15)}100%{transform:scale(1)}}
+@keyframes draw{from{stroke-dashoffset:26}to{stroke-dashoffset:0}}
+.cap input:focus-visible + .cap-ui{outline:2.5px solid var(--blue);outline-offset:3px}
+.cap input:disabled{cursor:not-allowed}
+.cap .sp{position:absolute;left:50%;top:50%;width:5px;height:5px;margin:-2.5px;border-radius:50%;pointer-events:none;animation:sp .55s cubic-bezier(.2,.8,.3,1) both}
+@keyframes sp{0%{transform:translate(0,0) scale(.4);opacity:1}70%{opacity:1}100%{transform:translate(var(--dx),var(--dy)) scale(1);opacity:0}}
+.qty{grid-area:qty;width:42px;height:38px;display:flex;align-items:center;justify-content:center;font-weight:600;font-size:14px;color:var(--blue-text);background:var(--blue-soft);border-radius:11px;font-variant-numeric:tabular-nums;transition:background .3s,color .3s}
+.qty small{font-size:11px;font-weight:500;margin-right:1px;opacity:.75}
+.row.is-done .qty{background:var(--tosca-soft);color:var(--tosca-text)}
+.main{grid-area:main;min-width:0}
+.body-name{font-weight:600;font-size:14.5px;line-height:1.35;overflow-wrap:anywhere}
+.txt{background:linear-gradient(var(--faint),var(--faint)) no-repeat 0 55% / 0% 1.5px;transition:background-size .4s ease,color .3s}
+.row.is-done .txt{background-size:100% 1.5px;color:var(--muted)}
+.details{margin:2px 0 0;color:var(--muted);font-size:13px;white-space:pre-wrap;overflow-wrap:anywhere;max-width:62ch}
+.row.is-done .details,.row.is-done .who{opacity:.7}
+.meta{grid-area:meta;display:grid;gap:5px;min-width:0;justify-items:start}
+.who{min-width:0;font-size:13px;line-height:1.35;display:flex;flex-wrap:wrap;gap:2px 8px;align-items:center}
+.who .nm{font-weight:500;overflow-wrap:anywhere}
+.who .ph{color:var(--muted);font-variant-numeric:tabular-nums;user-select:all;white-space:nowrap}
+.addr{font-size:12px;color:var(--muted);line-height:1.4;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;overflow-wrap:anywhere}
+.wa{font-size:10.5px;font-weight:700;color:var(--tosca-text);background:var(--tosca-soft);text-decoration:none;border-radius:6px;padding:1px 6px;line-height:1.5}
+.wa:hover{background:var(--tosca);color:#fff}
+.when{display:flex;flex-wrap:wrap;align-items:center;gap:4px 8px}
+.chip{display:inline-flex;align-items:center;gap:5px;font-size:11.5px;font-weight:600;padding:2px 9px;border-radius:999px;white-space:nowrap}
+.chip::before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor}
+.chip.late{background:var(--pink-soft);color:var(--pink-text)}
+.chip.soon{background:var(--yellow-soft);color:var(--yellow-text)}
+.chip.ok{background:var(--blue-soft);color:var(--blue-text)}
+.chip.done{background:var(--tosca-soft);color:var(--tosca-text)}
+.date{font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums;white-space:nowrap}
+.actions{grid-area:act;display:flex;gap:2px;justify-self:end;align-items:center}
+.icon-btn.sm{width:32px;height:32px;color:var(--faint)}
+.icon-btn.sm svg{width:16px;height:16px}
+.icon-btn.del:hover{color:var(--pink-text);background:var(--pink-soft)}
+.confirm{display:flex;gap:6px;align-items:center;font-size:12.5px;font-weight:500;white-space:nowrap}
+@container (max-width:600px){
+  .row{grid-template-columns:26px 40px minmax(0,1fr) auto;grid-template-areas:"check qty main main" "check qty meta act";gap:8px 12px;align-items:start}
+  .cap{margin-top:6px}
+  .meta{display:flex;flex-wrap:wrap;gap:6px 12px;align-items:center;align-self:center}
+  .addr{flex-basis:100%}
+  .actions{align-self:center}
+  .row.is-late::before{left:-8px}
+}
+.empty{display:grid;justify-items:center;text-align:center;gap:8px;padding:36px 16px 30px}
+.empty .ttl{font-size:19px}
+.empty p{margin:0;color:var(--muted);font-size:13px;max-width:42ch}
+
+/* dotted break */
+.divider{height:4px;margin-block:14px 4px;background:var(--grad);opacity:.75;-webkit-mask:radial-gradient(circle,#000 1.7px,transparent 2.2px) 0 50%/12px 4px repeat-x;mask:radial-gradient(circle,#000 1.7px,transparent 2.2px) 0 50%/12px 4px repeat-x}
+
+/* ---------- recap ---------- */
+.recap-wrap{display:grid;gap:22px}
+.recap-bar{display:flex;flex-wrap:wrap;gap:12px 18px;align-items:center;justify-content:space-between}
+.recap-ctrl{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.yearpick{display:inline-flex;align-items:center;gap:2px;background:var(--soft);border:1px solid var(--line);border-radius:999px;padding:3px}
+.yearpick output{font-size:14px;font-weight:600;min-width:4ch;text-align:center;font-variant-numeric:tabular-nums}
+.yearpick button{width:30px;height:30px;border-radius:50%;border:0;background:transparent;color:var(--text);cursor:pointer;display:grid;place-items:center}
+.yearpick button:hover:not(:disabled){background:var(--surface);box-shadow:0 1px 3px rgba(22,32,84,.1)}
+.yearpick button:disabled{opacity:.3;cursor:default}
+.yearpick svg{width:15px;height:15px;stroke:currentColor;stroke-width:2.2;fill:none;stroke-linecap:round;stroke-linejoin:round}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:999px;padding:3px;background:var(--soft)}
+.seg button{border:0;background:transparent;font-size:12.5px;font-weight:600;padding:6px 14px;border-radius:999px;color:var(--muted);cursor:pointer;transition:all .2s}
+.seg button[aria-pressed="true"]{background:var(--surface);color:var(--text);box-shadow:0 1px 3px rgba(22,32,84,.1)}
+.recap{display:grid;grid-template-columns:minmax(0,1.75fr) minmax(0,1fr);gap:22px}
+@media (max-width:900px){.recap{grid-template-columns:minmax(0,1fr)}}
+.recap .panel{display:grid;gap:12px;align-content:start;min-width:0}
+.panel-head{display:flex;flex-wrap:wrap;gap:8px 14px;justify-content:space-between;align-items:center}
+.legend{display:flex;gap:14px;font-size:12px;color:var(--muted)}
+.legend span{display:inline-flex;gap:6px;align-items:center}
+.sw{width:10px;height:10px;border-radius:3px;display:inline-block}
+.sw.done{background:var(--grad-bar)}.sw.todo{background:var(--pink)}
+.m-sum{margin:0;font-size:13px;color:var(--muted)}
+.m-sum b{font-weight:600;color:var(--text)}
+.note{margin:0;font-size:12px;color:var(--faint)}
+.mwrap{container-type:inline-size}
+.mchart{position:relative;display:grid;grid-template-columns:24px minmax(0,1fr);column-gap:8px;padding-top:26px}
+.m-y{position:relative;height:var(--plot-h)}
+.m-y span{position:absolute;right:0;transform:translateY(50%);font-size:11px;color:var(--faint);font-variant-numeric:tabular-nums;line-height:1}
+.m-plot{position:relative;height:var(--plot-h);border-bottom:1px solid var(--line-2)}
+.m-grid span{position:absolute;left:0;right:0;height:0;border-top:1px dashed var(--line)}
+.m-cols{position:absolute;inset:0;display:grid;grid-template-columns:repeat(12,minmax(0,1fr));gap:4px}
+.m-col{position:relative;border:0;background:transparent;padding:0;cursor:pointer;border-radius:10px 10px 0 0;transition:background .15s}
+.m-col:hover,.m-col:focus-visible,.m-col.active{background:var(--soft)}
+.m-col:focus-visible{outline-offset:-2px}
+.m-stack{position:absolute;bottom:0;left:50%;transform:translateX(-50%);width:min(58%,30px);height:0;display:flex;flex-direction:column;border-radius:8px 8px 3px 3px;overflow:hidden;transition:height .8s cubic-bezier(.2,1.1,.35,1)}
+.m-stack.zero{display:none}
+.m-seg{width:100%;flex:none}
+.m-seg.todo{background:var(--pink)}
+.m-seg.done{background:var(--grad-bar)}
+.m-seg.todo + .m-seg.done{border-top:2px solid var(--surface)}
+.m-val{position:absolute;left:50%;bottom:0;transform:translate(-50%,-6px);font-size:12px;font-weight:600;line-height:1;color:var(--text);transition:bottom .8s cubic-bezier(.2,1.1,.35,1);pointer-events:none;white-space:nowrap;font-variant-numeric:tabular-nums}
+.m-x{grid-column:2;display:grid;grid-template-columns:repeat(12,minmax(0,1fr));gap:4px;margin-top:8px}
+.m-x > span{text-align:center;font-size:11.5px;color:var(--muted);line-height:1.4}
+.m-x > span.now{color:var(--blue-text);font-weight:700}
+.m-x .s{display:none}
+@container (max-width:470px){.m-x .l{display:none}.m-x .s{display:inline}.m-val{font-size:11px}}
+.m-empty{position:absolute;inset:0;display:grid;place-items:center;color:var(--faint);font-size:13px;text-align:center;padding:0 16px}
+.tip{position:absolute;z-index:5;transform:translate(-50%,-100%);background:var(--tip-bg);color:var(--tip-fg);font-size:12px;line-height:1.45;padding:8px 11px;border-radius:10px;white-space:nowrap;pointer-events:none;box-shadow:0 10px 24px rgba(22,32,84,.2)}
+.tip b{font-weight:600}
+.y-big{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+.y-big .ttl{font-size:40px;line-height:1}
+.y-big span{color:var(--muted);font-size:13px}
+.ychart{display:grid;gap:4px}
+.yrow{display:grid;grid-template-columns:44px minmax(0,1fr) 74px;align-items:center;gap:12px;border:0;background:transparent;padding:9px 10px;border-radius:12px;cursor:pointer;text-align:left;transition:background .15s}
+.yrow:hover{background:var(--soft)}
+.yrow.sel{background:var(--soft-2)}
+.y-label{font-size:13.5px;font-weight:600;font-variant-numeric:tabular-nums}
+.y-track{position:relative;height:12px;background:var(--soft);border-radius:999px;overflow:hidden}
+.y-bar{position:absolute;left:0;top:0;bottom:0;width:0;border-radius:999px;background:var(--grad-pale);transition:width .9s cubic-bezier(.2,1.05,.35,1)}
+.yrow.sel .y-bar{background:var(--grad)}
+.y-bar.zero{display:none}
+.y-val{line-height:1.2;font-variant-numeric:tabular-nums;text-align:right}
+.y-val b{display:block;font-size:16px;font-weight:700}
+.y-val small{display:block;color:var(--muted);font-size:11px}
+
+/* ---------- settings dialog ---------- */
+dialog.settings{width:min(520px,calc(100% - 32px));max-height:calc(100% - 32px);border:0;border-radius:22px;padding:0;box-shadow:0 30px 80px rgba(22,32,84,.28);color:var(--text);background:var(--surface)}
+dialog.settings::backdrop{background:rgba(21,26,51,.38);-webkit-backdrop-filter:blur(3px);backdrop-filter:blur(3px)}
+.set-in{display:grid;gap:16px;padding:22px}
+.set-head{display:flex;justify-content:space-between;align-items:center;gap:10px}
+.set-status{display:grid;gap:4px;background:var(--soft);border-radius:12px;padding:12px 14px;font-size:13px}
+.set-status b{font-weight:600}
+.set-status .muted{color:var(--muted)}
+.set-actions{display:flex;flex-wrap:wrap;gap:8px}
+.set-actions .btn-main{flex:0 1 auto}
+.set-sec{display:grid;gap:8px;border-top:1px solid var(--line);padding-top:14px}
+.set-sec h3{margin:0;font-size:13px;font-weight:700}
+.set-sec p{margin:0;font-size:12.5px;color:var(--muted)}
+.set-row{display:flex;flex-wrap:wrap;gap:8px}
+
+/* ---------- toast ---------- */
+.toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translate(-50%,20px);opacity:0;background:var(--tip-bg);color:var(--tip-fg);padding:10px 18px;border-radius:999px;font-weight:500;font-size:13px;z-index:90;transition:transform .3s cubic-bezier(.2,1.3,.4,1),opacity .2s;pointer-events:none;max-width:calc(100% - 32px);text-align:center;box-shadow:0 10px 30px rgba(22,32,84,.25)}
+.toast.show{opacity:1;transform:translate(-50%,0)}
+footer{text-align:center;color:var(--faint);font-size:12px}
+
+/* ---------- intro ---------- */
+#intro{position:fixed;inset:0;z-index:100;background:var(--bg);display:none;place-items:center}
+html.intro-on #intro{display:grid;animation:introBail .3s 7s forwards}
+@keyframes introBail{to{opacity:0;visibility:hidden}}
+#introSvg{width:min(78vw,60vh,470px);height:auto;overflow:visible;transform-origin:0 0}
+#intro .skip{position:absolute;right:max(16px,env(safe-area-inset-right,0px));bottom:calc(18px + env(safe-area-inset-bottom,0px));font-size:12.5px;font-weight:600;color:var(--muted);background:var(--soft);border:1px solid var(--line);border-radius:999px;padding:7px 14px;cursor:pointer}
+#intro .skip:hover{color:var(--text)}
+
+@media (prefers-reduced-motion: reduce){
+  *,*::before,*::after{animation-duration:.001ms!important;animation-iteration-count:1!important;transition-duration:.001ms!important}
+}
+</style>
+</head>
+<body>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+  <defs>
+    <g id="lgB1" fill="#234A98"><path d="M73.8 114.4C74.1 113.7 74.2 113.4 74.2 113.4C74.1 113.5 74 113.9 73.8 114.4"/><path d="M325.8 142C327.3 138.4 328.6 135 329.9 131.6L330.1 131.1L330.1 130.9C332.5 124 334.3 117.4 335.5 111.1C336.8 104.7 337.8 98.9 338 93.2C338.1 89.8 337.5 88.7 337.1 88.4C336.9 88.2 335.8 87.3 333.9 87.2C332.4 87 332.1 87.1 330.6 87.2C330.2 87.3 329.6 87.4 328.9 87.5C321.8 88.2 306.7 84.7 306.7 84.7C326.7 91.1 329.2 96.6 329.3 96.9C331.7 104.1 332.3 117.1 326.3 140.2C326.1 140.8 326 141.4 325.8 142"/><path d="M50.4 126.2C50.4 126.2 51.2 109.3 54.7 101C54.8 100.5 54.8 100 54.8 99.4C54.9 98.3 55 97.2 55 96.2C54.4 95.7 53.8 95 53.4 94.2C52.9 93.5 52.6 92.7 52.5 91.9C52.4 91.1 52.5 90.4 52.8 89.7C53.1 89.1 53.7 88.6 54.5 88.3C54.3 85 54.2 81.8 54.2 78.5C54.1 76.9 53.9 72.5 53.7 68.3C53 68.5 52.3 68.8 51.6 69.1C48.8 70.1 46.2 70.7 43.7 71.1C43.7 71.1 43.7 71.1 43.7 71.1L43.7 71.1L39.4 72L43.6 72.6C41.3 95.3 43.1 122.7 50.4 126.2"/><path d="M298.9 235.2C297.2 232.8 290.2 231.7 286.6 232.4L288.5 233.7C288.5 233.7 287.3 238.7 285.9 245C294.6 243.8 301 238.3 298.9 235.2"/><path d="M307.7 260.8C307.7 260.8 312.6 262.2 313.4 257.8C314.2 253.4 310.2 251.8 310.2 251.8C310.2 251.8 306.7 257.2 306.9 261.7ZM307.7 260.8"/><path d="M167.8 106.9C166.5 107.7 166 109.4 166.8 110.7C167.6 112 169.3 112.4 170.6 111.6C171.9 110.8 172.4 109.1 171.6 107.8C170.8 106.5 169.1 106.1 167.8 106.9"/><path d="M250.7 178.9L241.3 186C279.1 190.6 293.4 164.2 293.4 164.2C274.4 181.1 250.7 178.9 250.7 178.9"/><path d="M55.9 93.4C57 93.4 57.8 92.6 57.8 91.5C57.7 90.5 56.9 89.7 55.9 89.7C54.8 89.7 54 90.6 54 91.6C54.1 92.7 54.9 93.5 55.9 93.4"/><path d="M57.3 88.5C57.8 88.4 58.2 88 58.2 87.5C58.2 87 57.8 86.6 57.3 86.6C56.8 86.6 56.4 87 56.4 87.5C56.4 88.1 56.8 88.5 57.3 88.5"/><path d="M85.4 72.8C86.7 71.5 88 70 88.2 68C88.3 67.3 88.5 66.4 87.7 66C86.9 65.6 86.3 66.2 85.8 66.7C83.4 69.1 82.5 72 82.3 75.6C83.5 74.5 84.5 73.8 85.4 72.8"/><path d="M54.6 271.7C54.6 264.8 72.6 234.5 72.6 234.5C69.7 239.1 65.5 243.1 52.1 262.5C40.5 279.5 49.2 280.2 49.2 280.2C51.6 281.6 64.2 281.8 64.2 281.8C56.1 280.5 54.6 275.8 54.6 271.7"/><path d="M129.8 174.9C141 144.1 145.3 121.6 146.9 107.9C146.9 108 146.9 108.1 146.9 108.2C147.4 102.6 148.8 95.8 148.7 93.9C145.8 90 142.3 83.1 139.6 77.6C130 86.7 116.6 94.8 103.9 101.3C103.9 101.3 106.9 99.9 111 97.8C107.2 99.9 104.4 101.3 103.9 101.3L104.6 101.4C104.6 101.4 133.2 88 137.1 87.9C139.2 89.6 141.9 93.2 144 97.8C143.7 110.3 141.5 136.4 129.5 173.4ZM129.8 174.9"/><path d="M64.8 139.1C66.2 136.8 72 118.9 73.8 114.4C71.8 118.9 63.1 137.7 51.8 146.3L66.8 142.8C66.8 142.8 63.2 141.8 64.8 139.1"/><path d="M245.3 178.5C245.4 176.1 240.9 177.2 238.5 177.1C236.1 177.1 234.1 177.7 234.1 180.1C234 182.5 235.9 185.1 238.3 184.6C241.6 183.8 245.2 180.9 245.3 178.5"/><path d="M171.4 104.4C172.1 104 172.3 103.1 171.9 102.4C171.4 101.7 170.5 101.5 169.8 101.9C169.1 102.3 168.9 103.2 169.3 103.9C169.7 104.6 170.7 104.9 171.4 104.4"/><path d="M183.5 85.8C183.4 85.8 182.7 85.4 181.9 85.3C180.7 85.2 179.5 85.8 178.5 86.7L178.5 86.7L178.4 86.7C177.6 87.4 176.8 88.2 176.3 88.8L176.2 89L176.1 89.1L174 91.2C168.8 97.3 163.6 99.2 163.6 99.2C163.5 101.7 165.9 107.9 165.9 107.9L167.1 105.9C167 105.1 166.8 103.7 167.2 103C167.6 102.2 168.1 101.4 168.6 100.7C172.9 95.6 178.9 94.1 179.2 94.1C181.5 93.8 184.2 94.2 187.3 95.8C194.7 100.9 208.4 108.6 222.8 108.8C222.8 108.8 222.8 108.8 222.8 108.8C208.1 105.1 194.9 97.5 183.5 85.8"/><path d="M34 197.2C32.4 196.6 30.6 197.5 30 199.1L28.7 202.5C28.1 204.2 29 205.9 30.6 206.5C32.2 207.1 34 206.3 34.6 204.7L35.8 201.2C36.4 199.6 35.6 197.8 34 197.2"/><path d="M321.9 313.2C321.2 313 320.8 312.2 321.1 311.5C321.3 310.8 322.1 310.4 322.8 310.7C323.5 310.9 323.9 311.7 323.6 312.4C323.4 313.1 322.6 313.5 321.9 313.2M317.1 317.7C315.9 317.3 315.3 315.9 315.7 314.7C316.2 313.5 317.5 312.8 318.7 313.3C320 313.7 320.6 315.1 320.1 316.3C319.7 317.5 318.3 318.2 317.1 317.7M316 300.8L307.1 296.1L308.2 297.7L305 321.9L291.4 328.6L300.8 296.6L303.7 295.8L295.6 294L294.8 283.1L294.6 271.5L302 273.7L308.4 275.7C308.4 277.6 308 280.7 308 280.7L319.1 279.2L326.8 281.7ZM277.8 307.1C270.3 306.8 267.5 289.6 275.7 269.7L275.7 269.7C276.9 266.8 278.6 263.2 280.2 260.9C280.2 260.9 277.6 263.2 275 267.3L273.4 267.2C273.4 267.2 273 267.4 272.4 267.3C273.2 260.2 275.8 241.2 283.2 217C283.2 217 287.6 214.5 288.9 211C291.3 204.5 295.1 195.3 297 190.1C297.2 189.6 297.4 189.2 297.5 188.7C299.5 182.5 298.6 176 298.6 176L298.6 176C298.3 173.2 298.1 170.7 298.1 169.1C301.3 164.5 304.1 158.9 305.3 152.3C305.3 152.3 297.4 179.7 266 188.8C266 188.8 249.9 193.9 234.9 187C230.8 184.9 227.5 182.4 225.4 180.6C225.4 180.6 225.3 180.5 225.2 180.4L225.2 180.5C223.5 178.9 222.5 177.9 222.5 177.9C237.1 199.9 245.6 259.9 245.6 259.9C246.7 269.2 246.4 277.3 245.1 284.4C243.6 285.1 241.8 285.7 239.7 285.8C241.4 278.4 241.8 270 240.7 260.5C240.6 259.9 239.9 255.5 238.8 248.9C238.8 250.1 238.7 252.2 238.5 254.9L237.7 259.5C237.7 259.4 237.8 259.3 237.8 259.2C237.7 259.3 237.7 259.5 237.7 259.5C229.5 292.6 197.2 289.1 198 298.3C198.4 302.8 197.4 308 196.1 312.4C194.4 314.2 181.6 319.2 154.8 315.3C154.8 315.3 169.5 322.2 191.4 321.9C191.3 321.9 191.1 321.9 191 321.9C191.4 321.9 191.8 321.9 192.2 321.9C192.9 321.8 193.6 321.8 194.3 321.7C194.3 321.7 194.3 321.7 194.3 321.7C195.7 321.6 197.1 321.4 198.5 321.1C208.8 319.5 220.2 315.5 228.7 306.8C232.1 303.3 234.8 299.3 236.8 294.7C237.4 297.2 238.1 299.5 238.8 301.7C219.1 335.2 165.3 329.8 145.6 318.3C143.6 317.2 141.7 315.8 140.1 314.2C134.5 309.1 130.2 302.1 127.8 295C126.1 289.8 125.5 284.1 125.2 278.7C125 275.4 124.9 272.1 124.9 268.8C111.9 274.2 84.4 284.2 58.7 284.5C22.6 284.9 51 260.1 57.9 249.3C76.5 220.1 92.5 193.6 90.8 140.9C90.8 140.9 90.6 135.9 70.3 141.8C70.3 141.8 81.9 140.2 84.6 142.3C75 144.4 56.1 148.4 41.3 151.3C41.3 151.3 69.4 129.3 70.4 110.5C70.4 110.5 122.2 92.7 141 69.9C141 69.9 148.9 87.6 152.7 91.5C152.7 91.5 152.7 91.6 152.7 91.6C153.4 101.7 151.6 112.2 149.7 122.1C147.7 132.9 145 143.7 141.8 154.3C133.2 182.2 120.5 209.5 103.6 233.4C100.3 238.1 98.3 241.9 97.6 244.8C95.5 240.5 97.9 233 97.9 233C89.8 251.6 101 250.8 101 250.8L101 250.8C103.2 250.8 106.2 249.8 110.2 247.7C115.7 244.8 121.2 241.3 125.7 238.1C125.9 233.7 126.5 229.2 126.3 224.8C125.8 215.1 125.6 213 124.5 206.7C126.7 203.2 128.9 199.3 131.1 194.9L149.4 185.4C151.8 210.7 158 238.4 166.6 247.9C159.2 244.8 150.2 231.1 150.2 231.1C162.9 259.7 172.7 255.7 176.7 252.1C182.5 248.1 182.8 228.4 182.4 206.5C181.9 176.3 158.9 97 158.9 97C163.4 95.1 172.5 85.7 172.5 85.7C180.4 76.1 186.9 82.2 186.9 82.2C208.9 104.7 234.2 107.7 252.7 105.7C253.3 106.1 253.9 106.4 254.2 106.3C255.3 106.1 255.4 106.8 255.4 106.8C255.4 106.8 256 107.3 256.4 107.5C256.4 110 255.9 112.3 255.4 113.8L250 128.6C249.6 129.7 250.2 130.9 251.3 131.3C252.4 131.7 253.6 131.1 254 130L260.9 111.1C262 108.1 263.6 106.9 264.8 106.5L260.9 117.2C260.5 118.3 261 119.5 262.1 119.9C263.2 120.3 264.4 119.7 264.8 118.6L268.1 109.8C269.4 106.6 272.1 101.7 276.5 100.4C278.2 100 278.8 99.5 278.8 99C279.1 98.9 279.2 98.8 279.2 98.8C272.2 89.2 270.9 66.2 277 69.6C297.4 81 321.7 83.5 329.1 82.8C332.6 82.4 337.8 82.1 340.6 84.8C342.8 87 343 90.5 342.9 93.4C342.7 99.6 341.6 105.9 340.4 112C337.7 126.7 332.1 140.9 325.7 154.3C321.5 163.2 316.8 172.1 311 180C307.2 185.3 304.6 186.4 302.8 186.1C301 187.2 299.1 191.8 299.1 191.8C296.6 199.4 293.3 209.8 292.2 212.6C291.5 214.6 291.7 216.2 292 217.3C293.2 217.5 294.5 217.8 295.7 218.2L295.7 218.2C296.1 218.4 307 222.2 309.9 233.2C310.2 234.4 310.3 235.5 310.4 236.4C307.4 239.8 304.7 244.2 304.7 244.2C306.1 242.5 308.8 240.3 310.2 239.2C310.2 239.2 310.2 239.2 310.2 239.2C313 237.1 316.2 235.3 319.5 234.8C319.5 234.8 331.4 245.5 330.2 255.3C329 265 324.3 266.4 317.7 266.1C317.7 266.1 321 276.4 320.8 279.2L319.7 279.2L319.6 279.2L318.9 279.2L309.3 279C309.4 278.3 309.5 277.2 309.5 276.1L309.5 276.1C309.5 275.5 309.5 274.9 309.4 274.2C309.4 274 309.4 273.9 309.4 273.9C309.4 273.9 309.4 273.9 309.4 273.9C309.2 271.2 308.5 267.5 306.7 263.6C306.7 263.6 306.1 269.4 307 272.8L303.8 273.3L296.3 270.8C296.6 266.9 297.9 259.6 302.9 249.2L306 249C306 249 303.5 247.9 301.5 247.5C301.5 247.5 301.6 247.5 301.6 247.5C301.4 247.5 301.2 247.6 301.1 247.6C301.1 247.6 294.3 250.1 285.7 249.3C285.6 248.5 285.5 247.8 285.4 247.1C284.7 250.7 283.9 254.6 283.2 258.1C289.7 253.1 296 258.2 296.1 270.8L293.4 269.9L294.6 283.4C294.4 284.1 294.3 284.7 294.1 285.4L286.4 283.7C286.4 283.7 288.3 275.2 281.6 278.5C281.6 278.5 283.2 278.8 284 279.1C284 279.1 279 283.4 279.4 297.3C279.4 297.3 280.4 304.2 284.6 290.5L293.4 293C293.4 293 285.6 307.3 277.8 307.1M269.9 218.3L262.7 265.4C261.7 265.4 261 265.3 260.5 265.1L265 224.2C264.1 221.5 263.2 218.9 262.5 216.1C261.5 212.1 260.6 207.4 259.9 202.7C254.1 201.6 248.5 199.1 248.5 199.1C254.4 200.1 259.1 199.7 261 199.5C275.8 197.1 286.4 189 293.3 181.7C293.6 183.9 295.5 186.9 290.9 198.1C289.4 201.7 288.1 204.9 287.2 206.9L285.7 206.7C278.2 205.5 271.1 210.7 269.9 218.3M252.4 319.4C242.6 311.1 238.6 288.3 238.6 288.3L254 286.3L254.4 288.6L249 290.8L253.2 290.6C254.3 297.2 258.9 303 258.9 303C256.6 296 261.3 279.5 261.3 279.5L265.6 278.4C260.6 278.8 252.6 277.5 252.6 277.5L259 265.9C262.7 268.3 274 269 274 269C274.2 271.5 270.8 276.7 270.8 276.7C266.8 291 270.6 305.4 270.6 305.4C268.6 309.5 252.4 319.4 252.4 319.4M255.1 324.5L253.5 325.1C253.2 325 252.9 324.8 252.4 324.5C252.3 325.1 252.1 325.5 251.9 325.8L246.8 327.9C245.3 328.3 243.3 328.9 240.7 330C238.1 329.5 238.1 329.5 237.9 329.2C237.8 329.2 237.8 329.2 237.7 329.2C237.7 329.2 237.7 329.2 237.7 329.2C237.8 329.3 237.9 329.4 238.1 329.5C238 330 238.8 330.5 238.4 331.1C237.4 331.3 237.1 330.2 236.3 330.3C235.5 330.4 235.9 331 235.5 331.6C234.3 331.6 233.8 331.6 233.7 331.5C233.7 331.5 233.7 331.5 233.6 331.5C233.2 332.7 231.8 332.8 231 333.6C230 333.7 229.9 333.4 230 332.9C229.5 333.4 228.7 333.7 227.7 333.7C227.6 334 227.3 334.3 226.9 334.4C227 334 227.3 333.7 227.7 333.6C227.1 332.1 219.8 333.6 214.7 333.4C213.1 333.3 211.2 336.2 211.2 334C206.8 333.5 204.3 333.2 203.3 332.9C203.2 332.9 203.1 333 203 333C202.8 333 202.6 333 202.4 333C176.9 337.6 149.9 335.7 123.7 326.1C102.6 318.4 84.3 306.5 69.2 291.7C78.6 291.5 89.3 289.9 101.3 287.1C103 286.7 103.1 286.7 104.3 286.3C110.5 284.8 114.6 283.4 118.9 282C119.3 286.8 120.9 292.4 122.6 297.3C125.3 305.4 130.6 312.8 136.7 318.5C138.6 320.3 140.8 321.3 143.1 322.7C143.4 322.8 143.6 323 143.9 323.1C143.9 323.1 155.3 329.4 167.8 330.7C168.3 330.8 168.7 330.8 169.1 330.9C171.3 331.2 173.6 331.5 175.8 331.7C183.4 332.4 190.8 332.2 197.8 331.3C209 330.2 222 326.6 225.6 325.5L225.6 325.5L226.5 325.2C232.2 323.5 238.8 321.1 245 317.4C242.6 312.6 242.6 308.8 242.6 308.8C243.7 312 246.1 315.5 246.8 316.3C246.8 316.3 246.8 316.3 246.8 316.3C250.1 320.6 252.8 322.6 252.8 322.6C252.8 322.6 259.3 321.1 267.1 315C267.1 315 261.8 322.5 255.1 324.5M219.6 334.8C219.4 334.7 219.2 334.6 219 334.5C219.1 334.5 219.2 334.3 219.3 334.4C220.1 334.6 219.8 334.6 219.6 334.8M130.1 337.1C130.1 337 130.3 337 130.4 336.9C130.5 337.1 130.5 337.3 130.6 337.4C130.4 337.6 130.3 337.8 130.1 337.1M44.1 258.9C23.8 223.2 17.9 179.6 31.2 137.8C31.2 137.7 31.2 137.7 31.2 137.7C31.2 137.7 31.2 137.7 31.2 137.7C31.6 136.5 32 135.3 32.4 134.1C32.5 133.7 32.5 133.3 32.8 133.2C32.9 132.7 33.1 132.2 33.3 131.7C33.8 130.1 34.4 128.6 35 127.1C37.1 132.6 39.8 136.8 43.4 138.1C44.9 138.6 46.5 138.7 48.1 138.4C44.2 142.3 40.6 145.5 38.2 147.3L35.3 149.6L36.6 153.1C36.8 153.6 37.7 155.5 40.1 157.7L40.1 157.7C40.1 157.7 44 160.7 41.3 168.2L33 190.8C32.4 192.4 33.3 194.2 34.9 194.8C36.5 195.4 38.3 194.5 38.9 192.9L45.6 174.5C47.6 169.8 51.6 162.7 58 160.8C65.2 159.8 75.2 158.7 83.3 158.3C85.1 152.8 86.3 147.6 86.3 147.6C86.2 151.6 85.7 158.8 85.6 159.3C83.4 199.9 68.9 222.7 53.7 246.6C52.5 248.4 50.5 250.8 48.4 253.4C47 255.2 45.5 257 44.1 258.9M34.3 71.6C27.7 71 23.8 68.8 23.5 68C23 66.7 24.6 66.2 24.6 66.2C27.7 67.6 30.9 68.3 34.4 68.4C34.7 59.2 35.7 51.8 37.2 48.5C39.7 43.3 47.9 46 49.3 46.7C47.1 51.4 45.3 58.8 44.2 67.3C47.2 66.5 50.4 65.5 53.5 64.2C53.4 61.8 53.3 59.7 53.2 58.8C53.2 57.8 53.4 57.1 54.1 56.7C54.7 56.2 55.5 56.2 56.4 56.7C56.8 56.9 57.2 57.2 57.6 57.6C58 57.9 58.3 58.3 58.7 58.8C59 59.2 59.2 59.7 59.4 60.2C59.6 60.6 59.6 61.1 59.6 61.5C88.3 47.5 119.8 17.7 133.6 24.2C135.7 30.3 132.1 33.1 132.1 33.1C120.2 27.4 89.6 52.7 59.8 65.8L60.8 83.1L59.1 85.4L63.2 83C63.7 82.7 64.2 82.4 64.7 82.1C65.2 81.9 65.6 81.7 65.8 81.5L65 68C65 67 65.2 66.3 65.8 65.9C66.4 65.5 67.1 65.5 67.8 65.9C68.8 66.6 69.6 67.4 70.3 68.5C71 69.5 71.3 70.4 71.4 71.4L71.8 78.4C72.1 78.4 72.3 78.3 72.6 78.1C72.7 78 73 77.9 73.3 77.8C73.6 80.8 74.6 83.2 74.6 83.2C74.4 82 74.4 79.3 74.5 77.6C74.5 77.6 74.5 77.6 74.5 77.6C75.1 72.2 77.4 67.7 81 63.7C83.3 61.3 86.2 60 89.5 59.9C92.4 59.8 94.9 61.8 95 64.8C95.2 68.5 93.5 71.3 90.7 73.6C90.2 74 89.6 74.4 89 75C89 75 85.2 78.2 82.5 79.3C82.5 81 82.9 82.4 83.7 83.8C84.7 85.7 86.8 86.1 88.4 84.6C89.1 84 89.6 83.1 90 82.3C90.5 81.3 90.6 78.6 91.9 78.3C92.4 78.2 92.9 78.5 93.2 79C93.5 79.4 93.6 79.9 93.7 80.4C94.2 83.7 93.9 87.2 92.2 90.1C90.5 93 87.3 95.1 84 94.9C79.3 94.7 76.6 90.9 75.3 86.6C74.3 87.1 73.3 87.7 72.4 88.2L73.3 102.7C73.3 103.8 73.1 104.6 72.5 104.9C71.9 105.2 71.3 105.1 70.5 104.7C70.1 104.5 69.6 104.2 69.2 103.9C68.8 103.5 68.4 103.1 68.1 102.6C67.8 102.2 67.5 101.7 67.3 101.2C67.1 100.7 66.9 100.2 66.9 99.8L66.4 91.4L61 94.5L61.9 110C62 111 61.8 111.7 61.3 111.9C60.9 112.1 60.3 112.1 59.6 111.8C59 111.6 58.3 111.2 57.7 110.7C57 110.2 56.6 109.8 56.2 109.4C55.8 108.8 55.6 108.3 55.3 107.7C52.6 118 52.7 127.9 52.7 127.9C52.7 127.9 51.2 131.7 47.6 133C37.9 136.4 33.7 98.3 34.3 71.6M265.2 105L265.2 105C265.2 105 265.3 104.9 265.3 104.9C265.3 105 265.3 105 265.2 105M132.4 39.2C132.4 39.3 132.4 39.5 132.5 39.5C138.3 39.2 143.8 35.7 147.2 34.3C148.6 33.6 149.9 33.7 150.6 34.1C164.9 31.7 179.6 31.3 194.4 33.2C195.2 32.7 196.1 31.7 197.2 32.8C197.2 32.9 197.2 32.9 197.2 33C197.2 33 197.3 32.9 197.3 32.9C197.3 32.8 197.5 32.7 197.7 32.6C197.7 32.6 197.7 32.6 197.7 32.6C197.8 32.4 197.8 32.2 197.9 32C198.7 32.2 198 31.7 200.5 31.8C200.5 31.3 200.5 30.9 200.5 30.4C200.7 30.5 201 30.6 201.2 30.7C201.2 30.6 201.2 30.6 201.2 30.6C202.4 30.3 202.9 30.5 202.4 29.8C202.4 29.8 202.4 29.8 202.4 29.8C202.3 29.8 202.2 29.7 201.8 29.5C198.1 27.6 200.9 28.2 201.1 27.7C201.8 28 202.1 28.6 202.2 29C202.3 29 202.4 29.1 202.8 29.2C205.3 29.1 204.6 28.7 206 30.8C208.4 28.4 208.5 30.6 217.3 31C219.1 32.5 219.2 32.4 219.2 32.8C219.2 32.8 219.3 32.8 219.3 32.8C219.4 32.8 219.4 32.8 219.4 32.8C219.3 32.7 219.2 32.6 219.1 32.5C219.4 32 219 31.4 219.6 31.1C220.4 31.3 220.2 32.2 220.8 32.5C221.5 32.8 221.5 32.1 222 31.8C222.9 32.3 223.3 32.4 223.3 32.6C223.4 32.6 223.4 32.6 223.4 32.6C224.2 31.8 225.3 32.3 226.3 32C227.1 32.3 227.1 32.6 226.8 32.9C227.4 32.7 228.1 32.7 228.8 33.2C229.1 32.9 229.4 32.8 229.8 32.9C229.5 33.2 229.2 33.3 228.9 33.2C228.8 34.6 235 36.3 238.9 38.4C240.1 39.1 242.8 37.6 241.9 39.3C245.2 41.4 247 42.6 247.7 43.2C247.8 43.2 247.9 43.2 248 43.2C251.2 45.6 259.9 49.9 262.4 52.3C262.8 52.6 267.9 56 270.6 58C270.6 58 270.5 57.9 270.5 57.9C271.3 58.1 272 58.5 272.2 59.4C272.2 59.4 272.2 59.4 272.2 59.4C272.2 59.4 272.2 59.4 272.2 59.4C272.3 59.4 272.3 59.4 272.3 59.4C273.8 60.2 275.4 61.1 277 62C277.8 62.8 278.9 63.6 280 64.4C279.3 64.3 278.7 64.2 278.1 64.2C277.4 64.1 276 64 274.6 64.4C272.7 64.8 271.1 66 270 67.8C269.6 68.6 269.2 69.4 268.9 70.4L268.7 71.1C267.3 77.2 268.5 86.6 271.2 93.9C261.1 97.3 251.1 98.6 241.4 97.8C215.6 95.5 199.8 78.8 199.6 78.6L198.8 77.8L197.7 77.4C193.8 75.9 190.2 74.9 186.9 74.7C182.1 74.2 179.1 75.2 177.6 75.9C174.5 76.9 171.5 79.1 168.8 82.3C168.7 82.4 168.6 82.5 168.4 82.7L140.1 63.2L137.1 66.7C133.5 71.1 128.5 75.4 122.8 79.4C122.8 79.3 122.8 79.2 122.8 79.2C113.4 86.1 103.3 91.8 94.4 96C95.3 95.1 96.2 94 96.9 92.8C99 89.1 99.8 84.4 99 79.6C98.9 78.6 98.6 77.3 97.7 76C97.5 75.6 97.2 75.3 96.9 75C99.4 72 100.6 68.5 100.4 64.6C100.2 60.3 97.6 56.7 93.6 55.2C93.9 55.1 94.2 54.9 94.6 54.9C95.7 53.8 97.9 54.7 100.4 50.7C101.9 50.5 110.3 45.1 111 44.7C110.4 44.9 114.8 43.9 118.3 40.5C120.3 39.6 122.2 38.8 123.9 38.4C123.9 38.4 124 38.3 124 38.3C126.4 37.6 128.4 37.5 129.8 38C129.8 38 131.6 38.8 132.4 39.2M235.7 35.4C235.8 35.5 235.9 35.7 236 35.8C235.9 35.9 235.8 35.9 235.7 35.9C235.2 35.4 235.4 35.5 235.7 35.4M328.3 186.1L329.2 185.8L330 185C331.4 183.6 333.1 181.5 334.6 179.4C334.5 179.8 334 180.1 334 182.1C334.4 184.2 333.6 186.1 333.2 188.1C333.5 188.3 333.9 188.5 333.9 188.7C334 191.5 334.3 194.4 333.1 197.1C331.7 200 334.5 200 333.8 201.2C333.3 201.8 331.7 201.8 332.4 202.7C333.2 203.7 332.1 209 330.8 213.8C330.7 214 330.6 214.2 330.4 214.4C330.3 214.5 330.3 214.5 330.2 214.6L330.2 214.6C330.2 214.6 330.2 214.6 330.1 214.6C329.7 214.9 329.3 215.1 328.9 215.1C328.2 215.5 327.5 216.3 326.9 217.8L323.4 227.5C323.1 228.2 322.3 228.5 321.6 228.3C320.9 228 320.6 227.3 320.8 226.6L323.8 218.6C323.9 218.1 324 217.6 324.2 217C323.3 217.1 322.4 217 321.5 216.7C319.4 215.9 318.1 213.8 318.1 211.6L296.3 208.3C297 205.8 298.1 202.5 299.3 198.8C299.5 198.2 302 190.7 306.2 191.3C315.2 191.1 326.8 186.7 328.3 186.1M320 305.9C320.4 306 320.6 306.5 320.5 306.9C320.3 307.3 319.8 307.5 319.4 307.4C319 307.2 318.8 306.8 319 306.4C319.1 305.9 319.6 305.7 320 305.9M328.4 312.4L341.1 229.2C341.5 226.7 341.2 224.3 340.3 222.1C345 202.8 346 183.3 343.7 164.3C353.6 145.2 358.4 128 360.7 116.3C363.5 101.8 363.3 92.6 363.3 92.2L363.2 89.1L360.5 87.9C359.4 87.1 356.4 83.4 354 79.9L353.8 79.6L353.6 79.4C351 76.5 347.5 74.8 343.5 74.5C341.4 74.3 339.7 74.6 339.1 74.7C333.1 75.5 326.9 75.7 320.6 75.1C312.6 74.5 305.3 72.7 299.3 70.9C282.6 53.3 261.6 39.2 237.3 30.3C204.6 18.4 170.7 17.6 139.5 25.8C139.3 24.7 139.1 23.6 138.6 22.4L137.9 20.3L135.9 19.4C135.5 19.2 135.1 19 134.7 18.8C123.2 14.6 107.6 25 87.9 38.1C79.3 43.7 70.5 49.6 61.9 54.2C61.6 54 61.4 53.8 61.2 53.6C60.5 53 59.9 52.5 59.2 52.1L59 51.9L58.7 51.8C58.4 51.7 58.2 51.6 57.9 51.5C56.3 50.9 54.7 50.8 53.2 51.2C53.5 50.4 53.8 49.7 54.2 49L56.5 44.1L51.6 41.8C51.3 41.7 50.9 41.5 50.4 41.3C42.3 38.4 35.2 40.3 32.4 46.2C30.9 49.3 29.9 54.7 29.3 62.2C29 62.1 28.7 62 28.4 61.9C27.9 61.7 27.4 61.5 26.9 61.3L24.9 60.3L22.8 61.1C19.1 62.4 17.2 66.3 18.4 69.8C18.9 71.2 20.2 73.3 25.2 75.1C26.3 75.5 27.5 75.9 28.8 76.2C28.9 84.5 29.3 101.9 32.1 116.2C30.4 120.1 28.7 124 27.2 128C9.9 175.3 15.9 225.5 39.2 266C36.6 270.6 35.1 275.1 36.2 279.4C36.8 281.9 38.7 285.3 43.8 287.4C47.5 289.1 52 290.3 56.9 291C74.6 311.6 97.6 328.1 124.9 338C161.1 351.3 199 350.9 232.9 339.5C232.9 339.5 232.9 339.5 232.9 339.5C256.5 338.1 262 330 269.3 323.7C274.2 319.5 278 318.9 280 319L283.1 319.5C290.1 320.9 288.4 324.5 288.4 324.5C287.3 329.9 285.9 334.9 290.3 334.4C293.5 334.1 300.7 329.4 306 326.8C312.3 321.3 313.4 323.5 317.6 322C317.6 322 318 322 318 322C324.8 322 327.3 319.3 328.4 312.4"/></g>
+    <g id="lgP" fill="#EE2368"><path d="M229.4 330.7C229.4 330.7 229.4 330.7 229.4 330.7C229.4 330.8 229.4 330.8 229.4 330.8C229.4 330.8 229.4 330.8 229.4 330.7M267.1 315C266.9 315.2 266.6 315.4 266.3 315.6C266.2 315.6 266.2 315.6 266.2 315.6C265.9 315.8 265.5 316 265.2 316.2C265.1 316.2 265.1 316.2 265.1 316.3C265.1 316.3 265.1 316.3 265.1 316.3C264.4 316.7 263.6 317.1 262.7 317.5C262.7 317.6 262.7 317.6 262.7 317.6C261.9 318 261 318.5 260.1 318.9C260.1 318.9 260.1 318.9 260.1 318.9L260.1 318.9C256.4 320.8 252.8 322.6 252.8 322.6C252.8 322.6 250.1 320.6 246.8 316.3C246.8 316.3 246.8 316.3 246.8 316.3C246.6 316.1 246.3 315.6 245.9 315C244.9 313.5 243.4 311.1 242.6 308.8C242.6 308.8 242.6 309 242.6 309.5C242.6 309.5 242.6 309.6 242.6 309.7C242.7 309.9 242.7 310.1 242.7 310.3C242.7 310.4 242.7 310.5 242.8 310.6C242.8 310.9 242.8 311.1 242.9 311.3C242.9 311.5 242.9 311.6 243 311.8C243 312 243.1 312.3 243.2 312.6C243.2 312.8 243.3 313 243.4 313.2C243.4 313.5 243.5 313.8 243.6 314C243.7 314.3 243.8 314.5 243.9 314.8C244 315.1 244.1 315.4 244.2 315.7C244.3 315.9 244.5 316.2 244.6 316.4C244.7 316.8 244.9 317.1 245 317.4C238.8 321.1 232.2 323.5 226.5 325.2L225.6 325.5L225.6 325.5C225.4 325.6 225.1 325.7 224.8 325.8C220.7 326.9 209.9 329.9 199.9 331.1C199.2 331.1 198.5 331.2 197.8 331.3C190.8 332.2 183.4 332.4 175.8 331.7C173.6 331.5 171.3 331.2 169.1 330.9C168.7 330.8 168.3 330.8 167.8 330.7C166.2 330.5 164.7 330.3 163.2 330C159.4 329.3 155.9 328.2 152.9 327.1C149.9 326 147.4 324.9 145.9 324.1C145.2 323.8 144.8 323.6 144.4 323.4C144.1 323.2 143.9 323.1 143.9 323.1C143.6 323 143.4 322.8 143.1 322.7C142.5 322.3 141.9 322 141.4 321.7C139.7 320.7 138.1 319.8 136.7 318.5C130.6 312.8 125.3 305.4 122.6 297.3C120.9 292.4 119.3 286.8 118.9 282C118.4 282.2 117.9 282.4 117.3 282.5C113.6 283.7 109.8 284.9 104.3 286.3C103.4 286.6 103.1 286.7 102.3 286.9C102.1 286.9 101.8 287 101.3 287.1C89.3 289.9 78.6 291.5 69.2 291.7C75.3 297.7 82 303.2 89.2 308.2C92.6 310.6 96.2 312.8 99.8 315C100.6 315.4 101.3 315.8 102 316.2C106.5 318.7 111.1 321 115.9 323.1C118.5 324.2 121.1 325.2 123.7 326.1C148.2 335.1 173.5 337.3 197.6 333.7C199.2 333.5 200.8 333.2 202.4 333C202.6 333 202.8 333 203 333C203.1 333 203.2 332.9 203.3 332.9C204.3 333.2 206.8 333.5 211.2 334C211.2 334.6 211.3 334.8 211.5 334.8C212.1 334.9 213.5 333.3 214.7 333.4C219.2 333.6 225.3 332.5 227.2 333.2C227.5 333.3 227.7 333.5 227.7 333.6C227.3 333.7 227 334 226.9 334.4C227.3 334.3 227.6 334 227.7 333.7C228.7 333.7 229.5 333.4 230 332.9C229.9 333.2 229.9 333.5 230.4 333.6C230.5 333.6 230.8 333.6 231 333.6C231.8 332.8 233.2 332.7 233.6 331.5C233.7 331.5 233.7 331.5 233.7 331.5C233.7 331.5 233.8 331.5 233.9 331.5C234.1 331.6 234.6 331.6 235.5 331.6C235.9 331 235.5 330.4 236.3 330.3C236.4 330.3 236.5 330.3 236.6 330.3C237 330.4 237.3 330.9 237.8 331.1C237.9 331.1 238.1 331.2 238.4 331.1C238.6 330.8 238.5 330.5 238.4 330.3C238.4 330.3 238.4 330.3 238.4 330.3C238.2 330 238 329.7 238.1 329.5C237.9 329.4 237.8 329.3 237.7 329.2C237.7 329.2 237.7 329.2 237.7 329.2C237.8 329.2 237.8 329.2 237.9 329.2C238 329.4 238 329.4 238.4 329.5C238.7 329.6 239.4 329.8 240.7 330C243.3 328.9 245.3 328.3 246.8 327.9L251.9 325.8C252.1 325.5 252.3 325.1 252.4 324.5C252.3 324.3 252 324.2 251.7 324.1C251.8 324.1 252 324 252.1 323.9C252.1 324.1 252.3 324.3 252.4 324.5C252.9 324.8 253.2 325 253.5 325.1L255.1 324.5C255.7 324.3 256.3 324.1 256.9 323.8C259.9 322.5 262.5 320.2 264.3 318.3C264.7 317.9 265.1 317.5 265.4 317.1C265.7 316.8 265.9 316.5 266.1 316.2C266.4 315.9 266.7 315.6 266.8 315.4C267 315.2 267.1 315 267.1 315"/><path d="M48.4 253.4C50.5 250.8 52.5 248.4 53.7 246.6C68.9 222.7 83.4 199.9 85.6 159.3C85.7 158.8 86.2 151.6 86.3 147.6C86.3 147.6 85.1 152.8 83.3 158.3C75.2 158.7 65.2 159.8 58 160.8C51.6 162.7 47.6 169.8 45.6 174.5L38.9 192.9C38.3 194.5 36.5 195.4 34.9 194.8C33.3 194.2 32.4 192.4 33 190.8L41.3 168.2C44 160.7 40.1 157.7 40.1 157.7L40.1 157.7C37.7 155.5 36.8 153.6 36.6 153.1L35.3 149.6L38.2 147.3C40.6 145.5 44.2 142.3 48.1 138.4C46.5 138.7 44.9 138.6 43.4 138.1C39.8 136.8 37.1 132.6 35 127.1C34.4 128.6 33.8 130.1 33.3 131.7C33.1 132.2 32.9 132.7 32.8 133.2C32.5 133.3 32.5 133.7 32.4 134.1C32 135.3 31.6 136.5 31.2 137.7C31.2 137.7 31.2 137.7 31.2 137.7C31.2 137.7 31.2 137.7 31.2 137.8C17.9 179.6 23.8 223.2 44.1 258.9C45.5 257 47 255.2 48.4 253.4"/><path d="M219.3 334.4C219.2 334.3 219.1 334.5 219 334.5C219.2 334.6 219.4 334.7 219.6 334.8C219.8 334.6 220.1 334.6 219.3 334.4"/><path d="M285.7 206.7L287.2 206.9C288.1 204.9 289.4 201.7 290.9 198.1C295.5 186.9 293.6 183.9 293.3 181.7C286.4 189 275.8 197.1 261 199.5C259.1 199.7 254.4 200.1 248.5 199.1C248.5 199.1 254.1 201.6 259.9 202.7C260.6 207.4 261.5 212.1 262.5 216.1C263.2 218.9 264.1 221.5 265 224.2L260.5 265.1C261 265.3 261.7 265.4 262.7 265.4L269.9 218.3C271.1 210.7 278.2 205.5 285.7 206.7"/><path d="M237.9 329.2C238.1 329.5 238.1 329.5 240.7 330C243.3 328.9 245.3 328.3 246.8 327.9L251.9 325.8C252.1 325.5 252.3 325.1 252.5 324.5C252.9 324.8 253.2 325 253.5 325.1L255.1 324.5C261.8 322.5 267.1 315 267.1 315C259.3 321.1 252.8 322.6 252.8 322.6C252.8 322.6 250.1 320.6 246.8 316.3C246.8 316.3 246.8 316.3 246.8 316.3C246.1 315.5 243.7 312 242.6 308.8C242.6 308.8 242.6 312.6 245 317.4C238.8 321.1 232.2 323.5 226.5 325.2L225.6 325.5L225.6 325.5C222 326.6 209 330.2 197.8 331.3C190.8 332.2 183.4 332.4 175.8 331.7C173.6 331.5 171.3 331.2 169.1 330.9C168.7 330.8 168.3 330.8 167.8 330.7C155.3 329.4 143.9 323.1 143.9 323.1C143.6 323 143.4 322.8 143.1 322.7C140.8 321.3 138.6 320.3 136.7 318.5C130.6 312.8 125.3 305.4 122.6 297.3C120.9 292.4 119.3 286.8 118.9 282C114.6 283.4 110.5 284.7 104.3 286.3C103.1 286.7 103 286.7 101.3 287.1C89.3 289.9 78.6 291.5 69.2 291.7C84.3 306.5 102.6 318.4 123.7 326.1C149.9 335.7 176.9 337.6 202.4 333C202.6 333 202.8 333 203 333C203.1 333 203.2 332.9 203.3 332.9C204.3 333.2 206.8 333.5 211.2 334C211.2 336.2 213.1 333.3 214.7 333.4C219.8 333.6 227.1 332.1 227.7 333.6C227.3 333.7 227 334 226.9 334.4C227.3 334.3 227.6 334 227.7 333.7C228.7 333.7 229.5 333.4 230 332.9C229.9 333.4 230 333.7 231 333.6C231.8 332.8 233.2 332.7 233.6 331.5C233.7 331.5 233.7 331.5 233.7 331.5C233.8 331.6 234.3 331.6 235.5 331.6C235.9 331 235.5 330.4 236.3 330.3C237.1 330.2 237.4 331.3 238.4 331.1C238.8 330.5 238 330 238.1 329.5C237.9 329.4 237.8 329.3 237.7 329.2C237.7 329.2 237.7 329.2 237.7 329.2C237.8 329.2 237.8 329.2 237.9 329.2"/><path d="M197.2 33C197.2 32.9 197.2 32.9 197.2 32.8C196.1 31.7 195.2 32.7 194.4 33.2C179.6 31.3 164.9 31.7 150.6 34.1C149.9 33.7 148.6 33.6 147.2 34.3C143.8 35.7 138.3 39.2 132.5 39.5C132.4 39.5 132.4 39.3 132.4 39.2C131.6 38.8 129.8 38 129.8 38C128.4 37.5 126.4 37.6 124 38.3C124 38.3 123.9 38.4 123.9 38.4C122.2 38.8 120.3 39.6 118.3 40.5C114.8 43.9 110.4 44.9 111 44.7C110.3 45.1 101.9 50.5 100.4 50.7C97.9 54.7 95.7 53.8 94.6 54.9C94.2 54.9 93.9 55.1 93.6 55.2C97.6 56.7 100.2 60.3 100.4 64.6C100.6 68.5 99.4 72 96.9 75C97.2 75.3 97.5 75.6 97.7 76C98.6 77.3 98.9 78.6 99 79.6C99.8 84.4 99 89.1 96.9 92.8C96.2 94 95.3 95.1 94.4 96C103.3 91.8 113.4 86.1 122.8 79.2C122.8 79.2 122.8 79.3 122.8 79.4C128.5 75.4 133.5 71.1 137.1 66.7L140.1 63.2L168.4 82.7C168.6 82.5 168.7 82.4 168.8 82.3C171.5 79.1 174.5 76.9 177.6 75.9C179.1 75.2 182.1 74.2 186.9 74.7C190.2 74.9 193.8 75.9 197.7 77.4L198.8 77.8L199.6 78.6C199.8 78.8 215.6 95.5 241.4 97.8C251.1 98.6 261.1 97.3 271.2 93.9C268.5 86.6 267.3 77.2 268.7 71.1L268.9 70.4C269.2 69.4 269.6 68.6 270 67.8C271.1 66 272.7 64.8 274.6 64.4C276 64 277.4 64.1 278.1 64.2C278.7 64.2 279.3 64.3 280 64.4C278.9 63.6 277.8 62.8 277 62C275.4 61.1 273.8 60.2 272.3 59.4C272.3 59.4 272.3 59.4 272.2 59.4C272.2 59.4 272.2 59.4 272.2 59.4C272.2 59.4 272.2 59.4 272.2 59.4C272 58.5 271.3 58.1 270.5 57.9C270.5 57.9 270.6 58 270.6 58C267.9 56 262.8 52.6 262.4 52.3C259.9 49.9 251.2 45.6 248 43.2C247.9 43.2 247.8 43.2 247.7 43.2C247 42.6 245.2 41.4 241.9 39.3C242.8 37.6 240.1 39.1 238.9 38.4C235 36.3 228.8 34.6 228.9 33.2C229.2 33.3 229.5 33.2 229.8 32.9C229.4 32.8 229.1 32.9 228.8 33.2C228.1 32.7 227.4 32.7 226.8 32.9C227.1 32.6 227.1 32.3 226.3 32C225.3 32.3 224.2 31.8 223.4 32.6C223.4 32.6 223.4 32.6 223.3 32.6C223.3 32.4 222.9 32.3 222 31.8C221.5 32.1 221.5 32.8 220.8 32.5C220.2 32.2 220.4 31.3 219.6 31.1C219 31.4 219.4 32.1 219.1 32.5C219.2 32.6 219.3 32.7 219.4 32.8C219.4 32.8 219.4 32.8 219.3 32.8C219.3 32.8 219.2 32.8 219.2 32.8C219.2 32.4 219.1 32.5 217.3 31C208.5 30.6 208.4 28.4 206 30.8C204.6 28.7 205.3 29.1 202.8 29.2C202.4 29.1 202.3 29 202.2 29C202.1 28.6 201.8 28 201.1 27.7C200.9 28.2 198.1 27.6 201.8 29.5C202.2 29.7 202.3 29.8 202.4 29.8C202.4 29.8 202.4 29.8 202.4 29.8C202.9 30.5 202.4 30.3 201.2 30.6C201.2 30.6 201.2 30.6 201.2 30.7C201 30.6 200.7 30.5 200.5 30.4C200.5 30.9 200.5 31.3 200.5 31.8C198 31.7 198.7 32.2 197.9 32C197.8 32.2 197.8 32.4 197.7 32.6C197.7 32.6 197.7 32.6 197.7 32.6C197.5 32.7 197.3 32.8 197.3 32.9C197.3 32.9 197.2 33 197.2 33"/><path d="M334.6 179.4C333.1 181.5 331.4 183.6 330 185L329.2 185.8L328.3 186.1C326.8 186.7 315.2 191.1 306.2 191.3C302 190.7 299.5 198.2 299.3 198.8C298.1 202.5 297 205.8 296.3 208.3L318.1 211.6C318.1 213.8 319.4 215.9 321.5 216.7C322.4 217 323.3 217.1 324.2 217C324 217.6 323.9 218.1 323.8 218.6L320.8 226.6C320.6 227.3 321 228 321.6 228.3C322.3 228.5 323.1 228.2 323.4 227.5L326.9 217.8C327.5 216.3 328.2 215.5 328.9 215.1C329.3 215.1 329.7 214.9 330.1 214.6C330.2 214.6 330.2 214.6 330.2 214.6L330.2 214.6C330.3 214.5 330.3 214.5 330.4 214.4C330.6 214.2 330.7 214 330.8 213.8C332.1 209 333.2 203.7 332.4 202.7C331.7 201.8 333.3 201.8 333.8 201.2C334.5 200 331.7 200 333.1 197.1C334.3 194.4 334 191.5 333.9 188.7C333.9 188.5 333.5 188.3 333.2 188.1C333.6 186.1 334.4 184.2 334 182.1C334 180.1 334.5 179.8 334.6 179.4"/><path d="M320.5 306.9C320.6 306.5 320.4 306 320 305.9C319.6 305.7 319.1 305.9 319 306.4C318.8 306.8 319 307.2 319.4 307.4C319.8 307.5 320.3 307.3 320.5 306.9"/><path d="M318.7 313.3C317.5 312.8 316.2 313.5 315.7 314.7C315.3 315.9 315.9 317.3 317.1 317.7C318.3 318.2 319.7 317.5 320.1 316.3C320.6 315.1 320 313.7 318.7 313.3"/><path d="M323.6 312.4C323.9 311.7 323.5 310.9 322.8 310.7C322.1 310.4 321.3 310.8 321.1 311.5C320.8 312.2 321.2 313 321.9 313.2C322.6 313.5 323.4 313.1 323.6 312.4"/></g>
+    <g id="lgB2" fill="#234A98"><path d="M34.6 204.7C34 206.3 32.2 207.1 30.6 206.5C29 205.9 28.1 204.2 28.7 202.5L30 199.1C30.6 197.5 32.4 196.6 34 197.2C35.6 197.8 36.4 199.6 35.8 201.2ZM34.6 204.7"/></g>
+    <linearGradient id="brushGrad" x1="0" x2="1" y1="0" y2="0">
+      <stop offset="0" stop-color="#234A98"/><stop offset=".35" stop-color="#2F5BEA"/><stop offset=".68" stop-color="#7B4DEB"/><stop offset="1" stop-color="#EE2368"/>
+    </linearGradient>
+  </defs>
+</svg>
+
+<div id="intro" aria-hidden="true">
+  <svg id="introSvg" viewBox="-70 -70 515 508">
+    <defs>
+      <filter id="goo" filterUnits="userSpaceOnUse" x="-70" y="-70" width="515" height="508" color-interpolation-filters="sRGB">
+        <feGaussianBlur stdDeviation="6"/>
+        <feColorMatrix values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 24 -10"/>
+      </filter>
+      <mask id="mkP" maskUnits="userSpaceOnUse" x="-70" y="-70" width="515" height="508"><g id="mkPg" filter="url(#goo)" fill="#fff"></g></mask>
+      <mask id="mkB" maskUnits="userSpaceOnUse" x="-70" y="-70" width="515" height="508"><g id="mkBg" filter="url(#goo)" fill="#fff"></g></mask>
+    </defs>
+    <rect id="introBox" x="0" y="0" width="375.276" height="367.89" fill="none"/>
+    <g mask="url(#mkB)"><use href="#lgB1"/></g>
+    <g id="looseP" filter="url(#goo)" fill="#EE2368"></g>
+    <g mask="url(#mkP)"><use href="#lgP"/></g>
+    <g mask="url(#mkB)"><use href="#lgB2"/></g>
+    <g id="looseB" filter="url(#goo)" fill="#234A98"></g>
+  </svg>
+  <button class="skip" id="skipIntro" type="button">Skip</button>
+</div>
+
+<div class="page">
+  <header class="top">
+    <button class="logo-btn" id="logoBtn" type="button" aria-label="Play the intro again">
+      <svg id="hdrLogo" viewBox="0 0 375.276 367.89" width="375" height="368" role="img" aria-label="The W Project logo"><use href="#lgB1"/><use href="#lgP"/><use href="#lgB2"/></svg>
+    </button>
+    <div class="top-main">
+      <h1 class="title"><span class="ttl">Order</span><span class="ttl">Board</span></h1>
+      <span class="today" id="today"></span>
+    </div>
+  </header>
+
+  <nav class="subnav" aria-label="Sections">
+    <div class="subnav-in">
+      <div class="tabs" id="tabs">
+        <a class="tab" href="#orders" data-sec="orders" aria-current="true">Orders</a>
+        <a class="tab" href="#recap" data-sec="recap">Recap</a>
+        <span class="brush" id="brush" aria-hidden="true">
+          <svg class="stroke" viewBox="0 0 120 16" preserveAspectRatio="none"><path fill="url(#brushGrad)" d="M4.5 6.2C16 3.6 34 4.4 52 3.4S92 2.6 114 3.9c3.6.4 5.4 2.6 4.7 5.2-.5 2-2.6 3-5.6 3.2-15 .9-33 .1-51 1.1S22 14.6 7.6 13.5C3.4 13.2.9 11.4 1 9.2c.1-1.6 1.4-2.6 3.5-3z"/></svg>
+          <i class="drip"></i>
+          <i class="splat-dot" style="left:calc(100% + 5px);top:-1px;background:#EE2368"></i>
+          <i class="splat-dot" style="left:calc(100% + 11px);top:5px;width:3px;height:3px;background:#C4479B"></i>
+          <i class="splat-dot" style="left:-8px;top:7px;width:3px;height:3px;background:#2F5BEA"></i>
+        </span>
+      </div>
+      <div class="nav-right">
+        <button class="sync" id="syncBtn" type="button" data-s="off"><i></i><span>Not connected</span></button>
+        <button class="icon-btn" id="openSettings" type="button" aria-label="Settings" title="Settings">
+          <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>
+        </button>
+      </div>
+    </div>
+  </nav>
+
+  <section class="stats" aria-label="Quick look">
+    <div class="stat">
+      <span class="ico b" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="5" y="4" width="14" height="17" rx="2.5"/><path d="M9 4.5h6M9 10h6M9 14h6M9 18h3"/></svg></span>
+      <span class="stat-txt"><span class="k">Open orders</span><span class="v" id="st-open">0</span></span>
+    </div>
+    <div class="stat">
+      <span class="ico v" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="m12 3 9 5-9 5-9-5z"/><path d="m3 13 9 5 9-5"/></svg></span>
+      <span class="stat-txt"><span class="k">Bodies to paint</span><span class="v" id="st-bodies">0</span></span>
+    </div>
+    <div class="stat">
+      <span class="ico y" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="3.5" y="5" width="17" height="15" rx="2.5"/><path d="M3.5 10h17M8 3v4M16 3v4"/></svg></span>
+      <span class="stat-txt"><span class="k">Due this week</span><span class="v" id="st-week">0</span></span>
+    </div>
+    <div class="stat" id="st-late-wrap">
+      <span class="ico p" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="12" cy="13" r="8"/><path d="M12 9v4.5l2.5 1.5M5 4 2.5 6.5M19 4l2.5 2.5"/></svg></span>
+      <span class="stat-txt"><span class="k">Running late</span><span class="v" id="st-late">0</span></span>
+    </div>
+  </section>
+
+  <section class="work" id="orders" aria-label="Orders">
+    <form class="panel ticket" id="orderForm" novalidate autocomplete="off">
+      <div class="ticket-head">
+        <h2 class="ttl" id="formTitle">New order</h2>
+        <span class="ticket-no" id="ticketNo">Ticket #001</span>
+      </div>
+      <div class="pair bq">
+        <div class="field">
+          <label class="lbl" for="f-body">Body type</label>
+          <input class="inp" id="f-body" name="body" list="bodyList" placeholder="e.g. Avante Mk.III" maxlength="80" required>
+          <datalist id="bodyList"></datalist>
+        </div>
+        <div class="field">
+          <span class="lbl" id="qtyLbl">Qty</span>
+          <div class="stepper" role="group" aria-labelledby="qtyLbl">
+            <button type="button" id="qtyMinus" aria-label="One less">−</button>
+            <input id="f-qty" name="qty" type="number" inputmode="numeric" min="1" max="999" value="1" aria-labelledby="qtyLbl">
+            <button type="button" id="qtyPlus" aria-label="One more">+</button>
+          </div>
+        </div>
+      </div>
+      <div class="field">
+        <label class="lbl" for="f-details">Order details</label>
+        <textarea class="inp" id="f-details" name="details" maxlength="1000" placeholder="Colors, finish, decals, anything the customer asked for"></textarea>
+      </div>
+      <div class="pair">
+        <div class="field">
+          <label class="lbl" for="f-name">Name</label>
+          <input class="inp" id="f-name" name="name" maxlength="60" placeholder="Who ordered">
+        </div>
+        <div class="field">
+          <label class="lbl" for="f-phone">Phone / WA</label>
+          <input class="inp" id="f-phone" name="phone" type="tel" inputmode="tel" maxlength="24" placeholder="08xx xxxx xxxx">
+        </div>
+      </div>
+      <div class="field">
+        <label class="lbl" for="f-address">Shipping address <em>(optional)</em></label>
+        <textarea class="inp short" id="f-address" name="address" maxlength="400" placeholder="Street, city, postal code"></textarea>
+      </div>
+      <div class="field">
+        <label class="lbl" for="f-deadline">Deadline</label>
+        <input class="inp" id="f-deadline" name="deadline" type="date" required>
+        <div class="quick" aria-label="Quick deadline">
+          <button type="button" data-days="3">+3 days</button>
+          <button type="button" data-days="7">+1 week</button>
+          <button type="button" data-days="14">+2 weeks</button>
+          <button type="button" data-days="30">+1 month</button>
+        </div>
+      </div>
+      <p class="form-error" id="formError" role="alert"></p>
+      <div class="form-actions">
+        <button class="btn-main" type="submit" id="submitBtn">Add to the board</button>
+        <button class="btn-ghost" type="button" id="cancelEdit" hidden>Cancel</button>
+      </div>
+    </form>
+
+    <div class="panel board" aria-labelledby="queueTitle">
+      <div class="board-head">
+        <h2 class="ttl" id="queueTitle">Paint queue</h2>
+        <div class="filters" role="group" aria-label="Show">
+          <button class="pill" type="button" data-filter="all" aria-pressed="true">All <b id="c-all">0</b></button>
+          <button class="pill" type="button" data-filter="todo" aria-pressed="false">To do <b id="c-todo">0</b></button>
+          <button class="pill late-pill" type="button" data-filter="late" aria-pressed="false">Late <b id="c-late">0</b></button>
+          <button class="pill" type="button" data-filter="done" aria-pressed="false">Done <b id="c-done">0</b></button>
+        </div>
+      </div>
+      <label class="search">
+        <span class="sr">Search orders</span>
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg>
+        <input class="inp" id="q" type="search" placeholder="Search name, phone, body, address">
+      </label>
+      <div class="banner" id="connectNote" hidden>
+        <p>Orders are saved on this device only. Connect your Google Sheet to sync them everywhere.</p>
+        <button type="button" class="mini" data-open-settings>Connect</button>
+      </div>
+      <ol class="list" id="list"></ol>
+      <div class="empty" id="empty"></div>
+    </div>
+  </section>
+
+  <div class="divider" aria-hidden="true"></div>
+
+  <section class="recap-wrap" id="recap" aria-labelledby="recapTitle">
+    <div class="recap-bar">
+      <h2 class="ttl" id="recapTitle">Recap</h2>
+      <div class="recap-ctrl">
+        <div class="yearpick" role="group" aria-label="Year">
+          <button type="button" id="yPrev" aria-label="Previous year"><svg viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"/></svg></button>
+          <output id="yLabel" aria-live="polite">2026</output>
+          <button type="button" id="yNext" aria-label="Next year"><svg viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></svg></button>
+        </div>
+        <div class="seg" role="group" aria-label="Count by">
+          <button type="button" data-metric="bodies" aria-pressed="true">Bodies</button>
+          <button type="button" data-metric="orders" aria-pressed="false">Orders</button>
+        </div>
+      </div>
+    </div>
+    <div class="recap">
+      <div class="panel" aria-labelledby="mTitle">
+        <div class="panel-head">
+          <h3 class="ttl" id="mTitle">Monthly recap</h3>
+          <div class="legend"><span><i class="sw done"></i>Done</span><span><i class="sw todo"></i>In progress</span></div>
+        </div>
+        <p class="m-sum" id="mSum"></p>
+        <div class="mwrap"><div class="mchart" id="mchart"></div></div>
+        <p class="note">Orders count in the month of their deadline. Tap a bar for the breakdown.</p>
+      </div>
+      <div class="panel" aria-labelledby="yTitle">
+        <div class="panel-head"><h3 class="ttl" id="yTitle">Year totals</h3></div>
+        <div class="y-big" id="yBig"></div>
+        <div class="ychart" id="ychart"></div>
+        <p class="note">Tap a year to see its months.</p>
+      </div>
+    </div>
+  </section>
+
+  <footer>The W Project</footer>
+</div>
+
+<dialog class="settings" id="settings" aria-labelledby="setTitle">
+  <form class="set-in" id="setForm" method="dialog" novalidate>
+    <div class="set-head">
+      <h2 class="ttl" id="setTitle">Settings</h2>
+      <button class="icon-btn" type="button" id="closeSettings" aria-label="Close"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
+    </div>
+    <div class="set-status" id="setStatus"></div>
+    <div class="field">
+      <label class="lbl" for="s-url">Google Sheets web app URL</label>
+      <input class="inp" id="s-url" type="url" inputmode="url" placeholder="https://script.google.com/macros/s/…/exec" spellcheck="false">
+    </div>
+    <div class="field">
+      <label class="lbl" for="s-pin">PIN</label>
+      <input class="inp" id="s-pin" type="password" placeholder="Same PIN as in the Apps Script" autocomplete="off">
+    </div>
+    <p class="form-error" id="setError" role="alert"></p>
+    <div class="set-actions">
+      <button class="btn-main" type="button" id="saveConn">Save and connect</button>
+      <button class="btn-ghost" type="button" id="syncNow">Sync now</button>
+    </div>
+    <div class="set-sec">
+      <h3>Connect another device</h3>
+      <p>Copy this link on a connected device, send it to your phone (for example by WhatsApp to yourself), and open it there. The phone connects without typing the URL. The link contains your PIN, so only send it to yourself.</p>
+      <div class="set-row"><button class="mini" type="button" id="copySetup">Copy setup link</button></div>
+      <input class="inp" id="setupLink" readonly hidden aria-label="Setup link">
+    </div>
+    <div class="set-sec">
+      <h3>Backup</h3>
+      <p>Download every order as a CSV file you can open in Excel or Google Sheets.</p>
+      <div class="set-row"><button class="mini" type="button" id="dlCsv">Download CSV</button></div>
+    </div>
+    <div class="set-sec">
+      <h3>Intro</h3>
+      <p>The paint intro plays once a day. Tap the logo any time to see it again. App version <span id="appVer"></span>.</p>
+      <div class="set-row"><button class="mini" type="button" id="replayIntro">Play intro</button><button class="mini plain" type="button" id="forgetConn">Disconnect this device</button></div>
+    </div>
+  </form>
+</dialog>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+(() => {
+'use strict';
+const $ = (s, r = document) => r.querySelector(s);
+const NS = 'http://www.w3.org/2000/svg';
+const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)');
+const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+const MONTHS_FULL = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+const DAYS = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+const BODY_SUGGEST = ['Avante Mk.III','Aero Avante','Mach Frame','Beak Spider','Thunder Shot Mk.II','Dash-1 Emperor','Magnum Saber','Sonic Saber','Cyclone Magnum','Hurricane Sonic','Ray Spear','Neo VQS','Exflowly','Blast Arrow','Avante Mk.II'];
+const LS = { orders: 'wpos-orders-v1', queue: 'wpos-queue-v1', cfg: 'wpos-config-v1', meta: 'wpos-meta-v1', intro: 'wpos-intro' };
+
+const pad = n => String(n).padStart(2, '0');
+const isoDate = d => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+const parseDate = s => { if (typeof s !== 'string') return null; const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(s); return m ? new Date(+m[1], +m[2] - 1, +m[3]) : null; };
+const todayDate = () => { const d = new Date(); d.setHours(0, 0, 0, 0); return d; };
+const dayDiff = (a, b) => Math.round((a - b) / 86400000);
+const fmtDate = d => `${DAYS[d.getDay()]}, ${d.getDate()} ${MONTHS[d.getMonth()]}${d.getFullYear() !== todayDate().getFullYear() ? ' ' + d.getFullYear() : ''}`;
+const fmtTime = iso => { const d = new Date(iso); return isNaN(d) ? '' : `${pad(d.getHours())}:${pad(d.getMinutes())}`; };
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const str = (v, max = 1000) => (typeof v === 'string' ? v : v == null ? '' : String(v)).slice(0, max);
+const lsGet = (k, f) => { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : f; } catch (e) { return f; } };
+const lsSet = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} };
+
+/* ================= data ================= */
+function norm(id, d) {
+  d = d || {};
+  let qty = parseInt(d.qty, 10);
+  if (!Number.isFinite(qty) || qty < 1) qty = 1;
+  if (qty > 999) qty = 999;
+  return {
+    id, qty,
+    body: str(d.body, 80), details: str(d.details, 1000), name: str(d.name, 60), phone: str(d.phone, 24),
+    address: str(d.address, 400), deadline: str(d.deadline, 10), done: !!d.done,
+    doneAt: typeof d.doneAt === 'string' ? d.doneAt : null,
+    createdAt: typeof d.createdAt === 'string' ? d.createdAt : null,
+    updatedAt: typeof d.updatedAt === 'string' ? d.updatedAt : null,
+  };
+}
+const toDoc = o => ({ id: o.id, qty: o.qty, body: o.body, details: o.details, name: o.name, phone: o.phone, address: o.address,
+  deadline: o.deadline, done: o.done, doneAt: o.doneAt, createdAt: o.createdAt, updatedAt: o.updatedAt });
+
+const state = {
+  orders: new Map((lsGet(LS.orders, []) || []).filter(o => o && typeof o.id === 'string').map(o => [o.id, norm(o.id, o)])),
+  filter: 'all', q: '', year: new Date().getFullYear(), metric: 'bodies',
+  editingId: null, confirmId: null, flashId: null,
+};
+const saveOrders = () => lsSet(LS.orders, [...state.orders.values()].map(toDoc));
+
+/* ================= sync ================= */
+let cfg = lsGet(LS.cfg, { url: '', pin: '' }) || { url: '', pin: '' };
+let queue = lsGet(LS.queue, []) || [];
+let meta = lsGet(LS.meta, { lastSync: null, sheet: '' }) || { lastSync: null, sheet: '' };
+let seqN = queue.reduce((m, q) => Math.max(m, q.seq || 0), 0);
+const inflight = new Set();
+let flushing = false, pulling = false, writeEpoch = 0, syncState = 'off', flushTimer = null, retryTimer = null;
+const configured = () => !!(cfg.url && cfg.pin);
+
+function enqueue(op) {
+  const id = op.action === 'delete' ? op.id : op.order.id;
+  queue = queue.filter(q => !(q.id === id && !inflight.has(q.seq)));
+  queue.push({ seq: ++seqN, id, ...op });
+  lsSet(LS.queue, queue);
+  updateSyncUI();
+  clearTimeout(flushTimer);
+  flushTimer = setTimeout(() => flush(), 400);
+}
+
+class SyncError extends Error { constructor(code) { super(code); this.code = code; } }
+// Normal route is fetch. If the browser blocks it (CORS, extensions, some networks),
+// fall back to a script-tag request, which Apps Script answers as JSONP.
+const APP_VERSION = '1.4';
+const lastDetail = { fetch: '', backup: '', proxy: '' };
+let transport = lsGet('wpos-transport', 'fetch') === 'jsonp' ? 'jsonp' : 'fetch';
+function jsonp(params) {
+  return new Promise((resolve, reject) => {
+    const cb = '__wpos' + Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+    const s = document.createElement('script');
+    const q = new URLSearchParams({ ...params, pin: cfg.pin, callback: cb, t: String(Date.now()) });
+    const cleanup = () => { clearTimeout(tm); try { delete window[cb]; } catch (e) { window[cb] = undefined; } s.remove(); };
+    const tm = setTimeout(() => { cleanup(); lastDetail.backup = 'no answer in 30s'; reject(new SyncError('offline')); }, 30000);
+    window[cb] = data => { cleanup(); resolve(data); };
+    s.onerror = () => { cleanup(); lastDetail.backup = 'request refused'; reject(new SyncError('offline')); };
+    s.src = cfg.url + (cfg.url.includes('?') ? '&' : '?') + q.toString();
+    document.head.appendChild(s);
+  });
+}
+async function viaFetch(method, payload) {
+  const ctl = new AbortController();
+  const tm = setTimeout(() => ctl.abort(), 25000);
+  try {
+    let res;
+    if (method === 'GET') {
+      const q = new URLSearchParams({ ...payload, pin: cfg.pin, t: String(Date.now()) });
+      res = await fetch(cfg.url + (cfg.url.includes('?') ? '&' : '?') + q.toString(), { signal: ctl.signal, redirect: 'follow' });
+    } else {
+      res = await fetch(cfg.url, { method: 'POST', redirect: 'follow', signal: ctl.signal,
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify({ ...payload, pin: cfg.pin }) });
+    }
+    const txt = await res.text();
+    try { return JSON.parse(txt); } catch (e) { throw new SyncError('setup'); }
+  } catch (e) {
+    if (e instanceof SyncError) throw e;
+    lastDetail.fetch = (e && e.name === 'AbortError') ? 'no answer in 25s' : String((e && e.message) || e).slice(0, 80);
+    throw new SyncError('blocked');
+  } finally { clearTimeout(tm); }
+}
+function viaJsonp(method, payload) {
+  return method === 'GET' ? jsonp(payload) : jsonp({ payload: JSON.stringify(payload) });
+}
+// Preferred route when hosted on Netlify with the /api function: the browser only talks to this site,
+// and Netlify's server talks to Google. Falls back to the direct routes when /api is not there.
+const canProxy = location.protocol === 'https:' || location.protocol === 'http:';
+let proxyOff = false;
+async function viaProxy(method, payload) {
+  const ctl = new AbortController();
+  const tm = setTimeout(() => ctl.abort(), 30000);
+  const base = 'api?u=' + encodeURIComponent(cfg.url);
+  try {
+    let res;
+    if (method === 'GET') {
+      res = await fetch(base + '&' + new URLSearchParams({ ...payload, pin: cfg.pin, t: String(Date.now()) }).toString(), { signal: ctl.signal, cache: 'no-store' });
+    } else {
+      res = await fetch(base, { method: 'POST', signal: ctl.signal, headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify({ ...payload, pin: cfg.pin }) });
+    }
+    if (res.status === 404) throw new SyncError('noproxy');
+    const txt = await res.text();
+    try { return JSON.parse(txt); } catch (e) { lastDetail.proxy = 'HTTP ' + res.status; throw new SyncError(res.status === 502 || res.status === 504 ? 'offline' : 'noproxy'); }
+  } catch (e) {
+    if (e instanceof SyncError) throw e;
+    lastDetail.proxy = (e && e.name === 'AbortError') ? 'no answer in 30s' : String((e && e.message) || e).slice(0, 80);
+    throw new SyncError('offline');
+  } finally { clearTimeout(tm); }
+}
+async function api(method, payload) {
+  lastDetail.fetch = ''; lastDetail.backup = ''; lastDetail.proxy = '';
+  if (canProxy && !proxyOff) {
+    try {
+      const pj = await viaProxy(method, payload);
+      if (!pj || !pj.ok) throw new SyncError(pj && pj.error === 'wrong_pin' ? 'pin' : 'server');
+      return pj;
+    } catch (e) {
+      if (e.code !== 'noproxy') throw e;
+      proxyOff = true;
+    }
+  }
+  let j;
+  if (transport === 'fetch') {
+    try { j = await viaFetch(method, payload); }
+    catch (e) {
+      if (e.code !== 'blocked') throw e;
+      j = await viaJsonp(method, payload);
+      transport = 'jsonp'; lsSet('wpos-transport', 'jsonp');
+    }
+  } else {
+    j = await viaJsonp(method, payload);
+  }
+  if (!j || !j.ok) throw new SyncError(j && j.error === 'wrong_pin' ? 'pin' : 'server');
+  return j;
+}
+
+async function flush() {
+  if (!configured() || flushing) return !queue.length;
+  flushing = true; updateSyncUI();
+  try {
+    while (queue.length) {
+      let batch = queue.slice(0, transport === 'jsonp' ? 12 : 50);
+      if (transport === 'jsonp') while (batch.length > 1 && encodeURIComponent(JSON.stringify(batch)).length > 5500) batch = batch.slice(0, batch.length - 1);
+      batch.forEach(q => inflight.add(q.seq));
+      try {
+        await api('POST', { action: 'bulk', ops: batch.map(q => q.action === 'delete' ? { action: 'delete', id: q.id } : { action: 'upsert', order: q.order }) });
+      } finally { batch.forEach(q => inflight.delete(q.seq)); }
+      const sent = new Set(batch.map(q => q.seq));
+      queue = queue.filter(q => !sent.has(q.seq));
+      lsSet(LS.queue, queue);
+      writeEpoch++;
+    }
+    setSync('ok');
+    return true;
+  } catch (e) { onSyncError(e); return false; }
+  finally { flushing = false; updateSyncUI(); }
+}
+
+async function pull(tries = 0) {
+  if (!configured() || pulling) return false;
+  pulling = true;
+  try {
+    const epoch = writeEpoch;
+    const j = await api('GET', { action: 'list' });
+    if (epoch !== writeEpoch && tries < 2) { pulling = false; return pull(tries + 1); }
+    const m = new Map();
+    (j.orders || []).forEach(o => { if (o && typeof o.id === 'string') m.set(o.id, norm(o.id, o)); });
+    queue.forEach(q => { if (q.action === 'delete') m.delete(q.id); else m.set(q.id, norm(q.id, q.order)); });
+    state.orders = m;
+    saveOrders();
+    meta.lastSync = new Date().toISOString();
+    lsSet(LS.meta, meta);
+    setSync('ok');
+    renderAll();
+    return true;
+  } catch (e) { onSyncError(e); return false; }
+  finally { pulling = false; }
+}
+
+async function syncNow() {
+  if (!configured()) { setSync('off'); return false; }
+  setSync('syncing');
+  const ok = await flush();
+  if (!ok) return false;
+  return pull();
+}
+
+function onSyncError(e) {
+  const code = (e && e.code) || 'offline';
+  setSync(code === 'pin' ? 'pin' : code === 'setup' ? 'setup' : code === 'server' ? 'setup' : 'offline');
+  clearTimeout(retryTimer);
+  if (code === 'offline') retryTimer = setTimeout(() => syncNow(), 20000);
+}
+function setSync(s) { syncState = s; updateSyncUI(); }
+function updateSyncUI() {
+  const btn = $('#syncBtn');
+  let s = configured() ? syncState : 'off';
+  if (s === 'ok' && (flushing || queue.length)) s = 'syncing';
+  const n = queue.length;
+  const label = {
+    off: 'Not connected',
+    syncing: 'Syncing…',
+    ok: 'Synced',
+    offline: n ? `Offline · ${n} waiting` : 'Offline',
+    pin: 'Wrong PIN',
+    setup: 'Check setup',
+  }[s];
+  btn.dataset.s = s;
+  btn.querySelector('span').textContent = label;
+  btn.title = s === 'ok' && meta.lastSync ? `Last synced at ${fmtTime(meta.lastSync)}` : '';
+  $('#connectNote').hidden = configured();
+  renderSettingsStatus();
+}
+
+window.addEventListener('online', () => syncNow());
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') syncNow(); });
+setInterval(() => { if (document.visibilityState === 'visible' && configured()) syncNow(); }, 60000);
+
+/* ================= order logic ================= */
+function statusOf(o, t) {
+  if (o.done) return { cls: 'done', label: 'Done', late: false };
+  const d = parseDate(o.deadline);
+  if (!d) return { cls: 'ok', label: 'No date', late: false };
+  const diff = dayDiff(d, t);
+  if (diff < 0) return { cls: 'late', label: diff === -1 ? '1 day late' : `${-diff} days late`, late: true };
+  if (diff === 0) return { cls: 'soon', label: 'Due today' };
+  if (diff === 1) return { cls: 'soon', label: 'Due tomorrow' };
+  if (diff <= 3) return { cls: 'soon', label: `In ${diff} days` };
+  if (diff < 14) return { cls: 'ok', label: `In ${diff} days` };
+  return { cls: 'ok', label: `In ${Math.round(diff / 7)} weeks` };
+}
+function sortOrders(list) {
+  return list.sort((a, b) => {
+    if (a.done !== b.done) return a.done ? 1 : -1;
+    if (!a.done) return (a.deadline || '9999').localeCompare(b.deadline || '9999') || (a.createdAt || '').localeCompare(b.createdAt || '');
+    return (b.doneAt || '').localeCompare(a.doneAt || '') || (b.deadline || '').localeCompare(a.deadline || '');
+  });
+}
+function waNumber(phone) {
+  let d = String(phone || '').replace(/\D/g, '');
+  if (!d) return '';
+  if (d.startsWith('0')) d = '62' + d.slice(1); else if (d.startsWith('8')) d = '62' + d;
+  return d.length >= 9 ? d : '';
+}
+const newId = () => 'o' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+
+function upsert(o) {
+  o.updatedAt = new Date().toISOString();
+  state.orders.set(o.id, o);
+  saveOrders();
+  enqueue({ action: 'upsert', order: toDoc(o) });
+}
+function remove(id) {
+  state.orders.delete(id);
+  saveOrders();
+  enqueue({ action: 'delete', id });
+}
+
+/* ================= render: list ================= */
+const ICON_EDIT = '<svg viewBox="0 0 24 24"><path d="M4 20h4L19 9l-4-4L4 16z"/><path d="m13.5 6.5 4 4"/></svg>';
+const ICON_DEL = '<svg viewBox="0 0 24 24"><path d="M4 7h16"/><path d="M9 7V4h6v3"/><path d="M6 7l1 13h10l1-13"/></svg>';
+const ICON_CHECK = '<svg viewBox="0 0 24 24"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg>';
+
+function rowHTML(o, st) {
+  const d = parseDate(o.deadline);
+  const who = o.name || o.phone || 'this order';
+  const wa = waNumber(o.phone);
+  const confirming = state.confirmId === o.id;
+  return `
+    <label class="cap">
+      <input class="cap-in" type="checkbox" ${o.done ? 'checked' : ''} aria-label="Done: ${esc(o.body || 'order')} for ${esc(who)}">
+      <span class="cap-ui" aria-hidden="true">${ICON_CHECK}</span>
+    </label>
+    <div class="qty" title="${o.qty} ${o.qty === 1 ? 'body' : 'bodies'}"><small>×</small>${o.qty}</div>
+    <div class="main">
+      <div class="body-name"><span class="txt">${esc(o.body || 'Untitled body')}</span></div>
+      ${o.details ? `<p class="details">${esc(o.details)}</p>` : ''}
+    </div>
+    <div class="meta">
+      <div class="who">
+        ${o.name ? `<span class="nm">${esc(o.name)}</span>` : ''}
+        ${o.phone ? `<span class="ph">${esc(o.phone)}</span>` : ''}
+        ${wa ? `<a class="wa" href="https://wa.me/${wa}" target="_blank" rel="noopener" title="Chat on WhatsApp">WA</a>` : ''}
+      </div>
+      ${o.address ? `<div class="addr" title="${esc(o.address)}">${esc(o.address)}</div>` : ''}
+      <div class="when">
+        <span class="chip ${st.cls}">${esc(st.label)}</span>
+        ${d ? `<span class="date">${o.done ? 'due ' : ''}${fmtDate(d)}</span>` : ''}
+      </div>
+    </div>
+    <div class="actions">
+      ${confirming
+        ? `<span class="confirm">Delete? <button type="button" class="mini danger" data-act="del-yes">Yes</button><button type="button" class="mini plain" data-act="del-no">No</button></span>`
+        : `<button type="button" class="icon-btn sm" data-act="edit" aria-label="Edit ${esc(o.body)}" title="Edit">${ICON_EDIT}</button>
+           <button type="button" class="icon-btn sm del" data-act="del" aria-label="Delete ${esc(o.body)}" title="Delete">${ICON_DEL}</button>`}
+    </div>`;
+}
+
+const rowEls = new Map(), rowSig = new Map();
+let firstListRender = true;
+function filterMatch(o, t) {
+  switch (state.filter) {
+    case 'todo': return !o.done;
+    case 'late': return !o.done && statusOf(o, t).late;
+    case 'done': return o.done;
+    default: return true;
+  }
+}
+function renderList() {
+  const t = todayDate();
+  const listEl = $('#list');
+  const all = [...state.orders.values()];
+  const counts = { all: all.length, todo: 0, late: 0, done: 0 };
+  all.forEach(o => { if (o.done) counts.done++; else { counts.todo++; if (statusOf(o, t).late) counts.late++; } });
+  for (const k in counts) $('#c-' + k).textContent = counts[k];
+
+  const q = state.q.trim().toLowerCase();
+  const vis = sortOrders(all.filter(o => filterMatch(o, t) && (!q || [o.body, o.details, o.name, o.phone, o.address].join(' ').toLowerCase().includes(q))));
+
+  const animate = !reduceMotion.matches && !firstListRender;
+  const first = new Map();
+  if (animate) rowEls.forEach((el, id) => { if (el.isConnected) first.set(id, el.getBoundingClientRect().top); });
+  const keep = new Set(vis.map(o => o.id));
+  rowEls.forEach((el, id) => { if (!keep.has(id)) { el.remove(); rowEls.delete(id); rowSig.delete(id); } });
+
+  vis.forEach((o, i) => {
+    let el = rowEls.get(o.id);
+    const st = statusOf(o, t);
+    const flash = state.flashId === o.id;
+    const sig = JSON.stringify([toDoc(o), st.label, state.confirmId === o.id, flash]);
+    if (!el) {
+      el = document.createElement('li');
+      el.dataset.id = o.id;
+      el.addEventListener('animationend', e => { if (e.animationName === 'rowIn') el.classList.remove('enter'); });
+      rowEls.set(o.id, el);
+      if (!reduceMotion.matches) { el.classList.add('enter'); el.style.animationDelay = firstListRender ? `${Math.min(i, 12) * 35}ms` : '0ms'; }
+    }
+    if (rowSig.get(o.id) !== sig) {
+      const entering = el.classList.contains('enter');
+      el.className = 'row' + (o.done ? ' is-done' : '') + (st.late ? ' is-late' : '') + (flash ? ' flash' : '') + (entering ? ' enter' : '');
+      el.innerHTML = rowHTML(o, st);
+      rowSig.set(o.id, sig);
+      if (flash && o.done) splat(el.querySelector('.cap'));
+    }
+    const ref = listEl.children[i];
+    if (ref !== el) listEl.insertBefore(el, ref || null);
+  });
+
+  if (animate) {
+    vis.forEach(o => {
+      const el = rowEls.get(o.id), f = first.get(o.id);
+      if (f == null || !el) return;
+      const dy = f - el.getBoundingClientRect().top;
+      if (Math.abs(dy) > 1) el.animate([{ transform: `translateY(${dy}px)` }, { transform: 'translateY(0)' }], { duration: 520, easing: 'cubic-bezier(.2,.9,.25,1)' });
+    });
+  }
+  if (vis.length) firstListRender = false;
+
+  const empty = $('#empty');
+  if (vis.length) empty.hidden = true;
+  else {
+    empty.hidden = false;
+    if (!all.length) {
+      empty.innerHTML = configured()
+        ? `<span class="ttl">No orders yet</span><p>Fill in the form to add your first order.</p>`
+        : `<span class="ttl">No orders yet</span><p>Connect your Google Sheet to load your orders, or add a new one with the form.</p><button type="button" class="mini" data-open-settings>Connect Google Sheet</button>`;
+    } else empty.innerHTML = `<span class="ttl">Nothing here</span><p>Try another filter or clear the search.</p>`;
+  }
+}
+
+/* small paint splat on the checkbox */
+function splat(cap) {
+  if (!cap || reduceMotion.matches) return;
+  const cols = ['#2F5BEA', '#7B4DEB', '#EE2368', '#C4479B'];
+  for (let i = 0; i < 7; i++) {
+    const a = (i / 7) * Math.PI * 2 + Math.random() * .5;
+    const d = 15 + Math.random() * 8;
+    const s = document.createElement('i');
+    s.className = 'sp';
+    s.style.background = cols[i % cols.length];
+    s.style.setProperty('--dx', (Math.cos(a) * d).toFixed(1) + 'px');
+    s.style.setProperty('--dy', (Math.sin(a) * d).toFixed(1) + 'px');
+    const sz = 3 + Math.random() * 3;
+    s.style.width = s.style.height = sz.toFixed(1) + 'px';
+    cap.appendChild(s);
+    s.addEventListener('animationend', () => s.remove());
+  }
+}
+
+/* ================= render: stats ================= */
+function renderStats() {
+  const t = todayDate();
+  let open = 0, bodies = 0, week = 0, late = 0;
+  state.orders.forEach(o => {
+    if (o.done) return;
+    open++; bodies += o.qty;
+    const d = parseDate(o.deadline);
+    if (d) { const diff = dayDiff(d, t); if (diff < 0) late++; else if (diff <= 6) week++; }
+  });
+  $('#st-open').textContent = open;
+  $('#st-bodies').textContent = bodies;
+  $('#st-week').textContent = week;
+  $('#st-late').textContent = late;
+  $('#st-late-wrap').classList.toggle('hot', late > 0);
+  if (!state.editingId) $('#ticketNo').textContent = 'Ticket #' + String(state.orders.size + 1).padStart(3, '0');
+  const used = [];
+  sortOrders([...state.orders.values()]).reverse().forEach(o => { if (o.body && !used.includes(o.body)) used.push(o.body); });
+  $('#bodyList').innerHTML = [...used, ...BODY_SUGGEST.filter(b => !used.includes(b))].map(b => `<option value="${esc(b)}"></option>`).join('');
+}
+
+/* ================= render: charts ================= */
+function yearsRange() {
+  const cur = new Date().getFullYear();
+  let min = cur, max = cur;
+  state.orders.forEach(o => { const d = parseDate(o.deadline); if (d) { min = Math.min(min, d.getFullYear()); max = Math.max(max, d.getFullYear()); } });
+  return { min, max, cur };
+}
+function niceScale(v) {
+  if (v <= 0) return { max: 4, step: 1 };
+  const raw = v / 4, p = Math.pow(10, Math.floor(Math.log10(raw))), n = raw / p;
+  let step = Math.max(1, Math.round((n <= 1 ? 1 : n <= 2 ? 2 : n <= 5 ? 5 : 10) * p));
+  return { max: Math.ceil(v / step) * step, step };
+}
+function monthlyData(year) {
+  const arr = Array.from({ length: 12 }, () => ({ done: 0, todo: 0, ordersDone: 0, ordersTodo: 0, bodiesDone: 0, bodiesTodo: 0 }));
+  state.orders.forEach(o => {
+    const d = parseDate(o.deadline);
+    if (!d || d.getFullYear() !== year) return;
+    const m = arr[d.getMonth()];
+    if (o.done) { m.ordersDone++; m.bodiesDone += o.qty; } else { m.ordersTodo++; m.bodiesTodo += o.qty; }
+  });
+  arr.forEach(m => { m.done = state.metric === 'bodies' ? m.bodiesDone : m.ordersDone; m.todo = state.metric === 'bodies' ? m.bodiesTodo : m.ordersTodo; });
+  return arr;
+}
+const prevM = { key: null, h: [] }, prevY = { key: null, w: {} };
+function renderMonthly() {
+  const el = $('#mchart');
+  const year = state.year, key = year + '|' + state.metric;
+  const data = monthlyData(year);
+  const totals = data.map(m => m.done + m.todo);
+  const peak = Math.max(...totals);
+  const { max, step } = niceScale(peak);
+  const now = new Date();
+  const unit = state.metric === 'bodies' ? 'bodies' : 'orders';
+  const sumBodies = data.reduce((s, m) => s + m.bodiesDone + m.bodiesTodo, 0);
+  const sumOrders = data.reduce((s, m) => s + m.ordersDone + m.ordersTodo, 0);
+  const sumDone = data.reduce((s, m) => s + m.done, 0);
+  const sumTodo = data.reduce((s, m) => s + m.todo, 0);
+  $('#mSum').innerHTML = sumOrders
+    ? `<b>${year}</b> · ${sumBodies} ${sumBodies === 1 ? 'body' : 'bodies'} from ${sumOrders} ${sumOrders === 1 ? 'order' : 'orders'} · ${sumDone} ${unit} done, ${sumTodo} in progress · busiest month <b>${MONTHS_FULL[totals.indexOf(peak)]}</b>`
+    : `<b>${year}</b> · no orders with a deadline in this year yet`;
+  const sameKey = prevM.key === key;
+  const ticks = []; for (let v = 0; v <= max; v += step) ticks.push(v);
+  const finals = totals.map(v => (v / max) * 100);
+  let cols = '';
+  data.forEach((m, i) => {
+    const total = m.done + m.todo;
+    const start = sameKey ? (prevM.h[i] || 0) : 0;
+    const todoPct = total ? (m.todo / total) * 100 : 0;
+    const segs = [];
+    if (m.todo) segs.push(`<span class="m-seg todo" style="height:${todoPct}%"></span>`);
+    if (m.done) segs.push(`<span class="m-seg done" style="height:${100 - todoPct}%"></span>`);
+    cols += `<button type="button" class="m-col" data-m="${i}" aria-label="${MONTHS_FULL[i]} ${year}: ${total} ${unit}, ${m.done} done, ${m.todo} in progress">
+      <span class="m-stack${total ? '' : ' zero'}" style="height:${start}%">${segs.join('')}</span>
+      ${total ? `<span class="m-val" style="bottom:${start}%">${total}</span>` : ''}</button>`;
+  });
+  el.innerHTML = `
+    <div class="m-y" aria-hidden="true">${ticks.map(v => `<span style="bottom:${(v / max) * 100}%">${v}</span>`).join('')}</div>
+    <div class="m-plot">
+      <div class="m-grid" aria-hidden="true">${ticks.slice(1).map(v => `<span style="bottom:${(v / max) * 100}%"></span>`).join('')}</div>
+      <div class="m-cols">${cols}</div>
+      ${peak ? '' : `<div class="m-empty">Nothing due in ${year} yet</div>`}
+    </div>
+    <div class="m-x" aria-hidden="true">${MONTHS.map((mo, i) => `<span class="${year === now.getFullYear() && i === now.getMonth() ? 'now' : ''}"><span class="l">${mo}</span><span class="s">${mo[0]}</span></span>`).join('')}</div>
+    <div class="tip" id="tip" hidden></div>`;
+  const apply = () => el.querySelectorAll('.m-col').forEach((c, i) => {
+    const st = c.querySelector('.m-stack'), v = c.querySelector('.m-val');
+    if (st) st.style.height = finals[i] + '%';
+    if (v) v.style.bottom = finals[i] + '%';
+  });
+  if (reduceMotion.matches) apply(); else requestAnimationFrame(() => requestAnimationFrame(apply));
+  prevM.key = key; prevM.h = finals;
+}
+function showTip(col) {
+  const el = $('#mchart'), tip = $('#tip');
+  if (!tip || !col) return;
+  const i = +col.dataset.m;
+  const m = monthlyData(state.year)[i];
+  const unit = state.metric === 'bodies' ? 'bodies' : 'orders';
+  tip.innerHTML = `<b>${MONTHS_FULL[i]} ${state.year}</b><br>${m.done + m.todo} ${unit} · ${m.done} done · ${m.todo} in progress<br>${m.ordersDone + m.ordersTodo} orders, ${m.bodiesDone + m.bodiesTodo} bodies`;
+  tip.hidden = false;
+  el.querySelectorAll('.m-col.active').forEach(c => c.classList.remove('active'));
+  col.classList.add('active');
+  const er = el.getBoundingClientRect(), cr = col.getBoundingClientRect();
+  const st = col.querySelector('.m-stack:not(.zero)');
+  const topY = st ? st.getBoundingClientRect().top : cr.bottom;
+  const tw = tip.offsetWidth;
+  tip.style.left = Math.max(tw / 2, Math.min(er.width - tw / 2, cr.left - er.left + cr.width / 2)) + 'px';
+  tip.style.top = Math.max(tip.offsetHeight + 2, topY - er.top - 24) + 'px';
+}
+function hideTip() {
+  const tip = $('#tip'); if (tip) tip.hidden = true;
+  document.querySelectorAll('.m-col.active').forEach(c => c.classList.remove('active'));
+}
+function renderYearly() {
+  const { min, max, cur } = yearsRange();
+  const top = Math.max(max, cur);
+  const from = Math.max(Math.min(min, top - 2), top - 7);
+  const rows = [];
+  for (let y = top; y >= from; y--) {
+    let bodies = 0, orders = 0;
+    state.orders.forEach(o => { const d = parseDate(o.deadline); if (d && d.getFullYear() === y) { bodies += o.qty; orders++; } });
+    rows.push({ y, bodies, orders, v: state.metric === 'bodies' ? bodies : orders });
+  }
+  const peak = Math.max(1, ...rows.map(r => r.v));
+  const sameKey = prevY.key === state.metric;
+  const sel = rows.find(r => r.y === state.year) || { bodies: 0, orders: 0 };
+  $('#yBig').innerHTML = `<span class="ttl">${state.metric === 'bodies' ? sel.bodies : sel.orders}</span><span>${state.metric === 'bodies' ? 'bodies' : 'orders'} in ${state.year}</span>`;
+  const el = $('#ychart');
+  el.innerHTML = rows.map(r => {
+    const w = (r.v / peak) * 100, start = sameKey ? (prevY.w[r.y] || 0) : 0;
+    return `<button type="button" class="yrow${r.y === state.year ? ' sel' : ''}" data-year="${r.y}" aria-pressed="${r.y === state.year}" aria-label="${r.y}: ${r.bodies} bodies from ${r.orders} orders">
+      <span class="y-label">${r.y}</span>
+      <span class="y-track"><span class="y-bar${r.v ? '' : ' zero'}" style="width:${start}%" data-w="${w}"></span></span>
+      <span class="y-val"><b>${r.v}</b><small>${state.metric === 'bodies' ? `${r.orders} ${r.orders === 1 ? 'order' : 'orders'}` : `${r.bodies} ${r.bodies === 1 ? 'body' : 'bodies'}`}</small></span></button>`;
+  }).join('');
+  const apply = () => el.querySelectorAll('.y-bar').forEach(b => { b.style.width = b.dataset.w + '%'; });
+  if (reduceMotion.matches) apply(); else requestAnimationFrame(() => requestAnimationFrame(apply));
+  prevY.key = state.metric; prevY.w = Object.fromEntries(rows.map(r => [r.y, (r.v / peak) * 100]));
+  $('#yLabel').textContent = state.year;
+  $('#yPrev').disabled = state.year <= Math.min(min, from);
+  $('#yNext').disabled = state.year >= Math.max(max, cur);
+}
+function renderAll() { renderStats(); renderList(); renderMonthly(); renderYearly(); }
+
+/* ================= form ================= */
+const form = $('#orderForm');
+const F = id => $('#f-' + id);
+const clampQty = v => { let n = parseInt(v, 10); if (!Number.isFinite(n) || n < 1) n = 1; return Math.min(999, n); };
+$('#qtyMinus').addEventListener('click', () => { F('qty').value = Math.max(1, clampQty(F('qty').value) - 1); });
+$('#qtyPlus').addEventListener('click', () => { F('qty').value = Math.min(999, clampQty(F('qty').value) + 1); });
+F('qty').addEventListener('blur', () => { F('qty').value = clampQty(F('qty').value); });
+form.querySelectorAll('.quick button').forEach(b => b.addEventListener('click', () => {
+  const d = todayDate(); d.setDate(d.getDate() + (+b.dataset.days)); F('deadline').value = isoDate(d); $('#formError').textContent = '';
+}));
+function resetForm() {
+  form.reset(); F('qty').value = 1;
+  state.editingId = null;
+  form.classList.remove('editing');
+  $('#formTitle').textContent = 'New order';
+  $('#submitBtn').textContent = 'Add to the board';
+  $('#cancelEdit').hidden = true;
+  $('#formError').textContent = '';
+  renderStats();
+}
+function startEdit(id) {
+  const o = state.orders.get(id); if (!o) return;
+  state.editingId = id;
+  F('body').value = o.body; F('qty').value = o.qty; F('details').value = o.details;
+  F('name').value = o.name; F('phone').value = o.phone; F('address').value = o.address; F('deadline').value = o.deadline;
+  form.classList.add('editing');
+  $('#formTitle').textContent = 'Edit order';
+  $('#ticketNo').textContent = 'Editing';
+  $('#submitBtn').textContent = 'Save changes';
+  $('#cancelEdit').hidden = false;
+  $('#formError').textContent = '';
+  form.scrollIntoView({ behavior: reduceMotion.matches ? 'auto' : 'smooth', block: 'start' });
+  setTimeout(() => F('body').focus({ preventScroll: true }), 300);
+}
+$('#cancelEdit').addEventListener('click', resetForm);
+form.addEventListener('submit', e => {
+  e.preventDefault();
+  const body = F('body').value.trim(), qty = clampQty(F('qty').value), details = F('details').value.trim();
+  const name = F('name').value.trim(), phone = F('phone').value.trim(), address = F('address').value.trim(), deadline = F('deadline').value;
+  const err = $('#formError');
+  if (!body) { err.textContent = 'Add the body type first.'; F('body').focus(); return; }
+  if (!name && !phone) { err.textContent = "Add the customer's name or phone so you know who it's for."; F('name').focus(); return; }
+  if (!parseDate(deadline)) { err.textContent = 'Pick a deadline date.'; F('deadline').focus(); return; }
+  err.textContent = '';
+  if (state.editingId && state.orders.has(state.editingId)) {
+    upsert({ ...state.orders.get(state.editingId), body, qty, details, name, phone, address, deadline });
+    toast('Changes saved.');
+  } else {
+    upsert(norm(newId(), { body, qty, details, name, phone, address, deadline, done: false, createdAt: new Date().toISOString() }));
+    toast('Added to the board.');
+    const d = parseDate(deadline);
+    if (d && d.getFullYear() !== state.year) state.year = d.getFullYear();
+  }
+  resetForm();
+  renderAll();
+});
+
+/* ================= list events ================= */
+$('#list').addEventListener('change', e => {
+  const cb = e.target.closest('.cap-in'); if (!cb) return;
+  const row = cb.closest('.row'); if (!row) return;
+  const o = state.orders.get(row.dataset.id); if (!o) return;
+  const checked = cb.checked;
+  state.flashId = checked ? o.id : null;
+  upsert({ ...o, done: checked, doneAt: checked ? new Date().toISOString() : null });
+  renderAll();
+  toast(checked ? 'Marked as done.' : 'Back in the queue.');
+  if (checked) setTimeout(() => { if (state.flashId === o.id) state.flashId = null; }, 900);
+});
+$('#list').addEventListener('click', e => {
+  const b = e.target.closest('[data-act]'); if (!b) return;
+  const row = b.closest('.row'); if (!row) return;
+  const id = row.dataset.id, act = b.dataset.act;
+  if (act === 'edit') startEdit(id);
+  else if (act === 'del') { state.confirmId = id; renderList(); const n = row.querySelector('[data-act="del-no"]'); if (n) n.focus(); }
+  else if (act === 'del-no') { state.confirmId = null; renderList(); const d = row.querySelector('[data-act="del"]'); if (d) d.focus(); }
+  else if (act === 'del-yes') { state.confirmId = null; if (state.editingId === id) resetForm(); remove(id); renderAll(); toast('Order deleted.'); }
+});
+document.addEventListener('click', e => { if (e.target.closest('[data-open-settings]')) openSettings(); });
+document.addEventListener('keydown', e => {
+  if (e.key !== 'Escape') return;
+  if (state.confirmId) { state.confirmId = null; renderList(); }
+  else if (state.editingId && !$('#settings').open) resetForm();
+  hideTip();
+});
+document.querySelectorAll('.filters .pill').forEach(p => p.addEventListener('click', () => {
+  state.filter = p.dataset.filter;
+  document.querySelectorAll('.filters .pill').forEach(x => x.setAttribute('aria-pressed', String(x === p)));
+  renderList();
+}));
+let qTimer = null;
+$('#q').addEventListener('input', e => { clearTimeout(qTimer); qTimer = setTimeout(() => { state.q = e.target.value; renderList(); }, 120); });
+
+/* recap controls */
+$('#yPrev').addEventListener('click', () => { state.year--; hideTip(); renderMonthly(); renderYearly(); });
+$('#yNext').addEventListener('click', () => { state.year++; hideTip(); renderMonthly(); renderYearly(); });
+document.querySelectorAll('.seg button').forEach(b => b.addEventListener('click', () => {
+  state.metric = b.dataset.metric;
+  document.querySelectorAll('.seg button').forEach(x => x.setAttribute('aria-pressed', String(x === b)));
+  hideTip(); renderMonthly(); renderYearly();
+}));
+$('#ychart').addEventListener('click', e => { const r = e.target.closest('.yrow'); if (!r) return; state.year = +r.dataset.year; hideTip(); renderMonthly(); renderYearly(); });
+const mc = $('#mchart');
+mc.addEventListener('pointerover', e => { const c = e.target.closest('.m-col'); if (c) showTip(c); });
+mc.addEventListener('pointerleave', hideTip);
+mc.addEventListener('focusin', e => { const c = e.target.closest('.m-col'); if (c) showTip(c); });
+mc.addEventListener('focusout', e => { if (!mc.contains(e.relatedTarget)) hideTip(); });
+mc.addEventListener('click', e => { const c = e.target.closest('.m-col'); if (c) showTip(c); });
+
+/* ================= sub-menu brush ================= */
+const tabs = [...document.querySelectorAll('.tab')];
+const brush = $('#brush');
+let activeSec = 'orders';
+function placeBrush(tab, paint) {
+  if (!tab) return;
+  brush.style.left = (tab.offsetLeft + 4) + 'px';
+  brush.style.width = (tab.offsetWidth - 8) + 'px';
+  if (paint && !reduceMotion.matches) { brush.classList.remove('paint'); void brush.offsetWidth; brush.classList.add('paint'); }
+}
+function setActive(sec, paint = true) {
+  if (sec === activeSec && paint) return;
+  activeSec = sec;
+  tabs.forEach(t => t.setAttribute('aria-current', String(t.dataset.sec === sec)));
+  placeBrush(tabs.find(t => t.dataset.sec === sec), paint);
+}
+tabs.forEach(t => t.addEventListener('click', e => {
+  e.preventDefault();
+  const target = document.getElementById(t.dataset.sec);
+  lockSpy = Date.now() + 900;
+  setActive(t.dataset.sec);
+  target.scrollIntoView({ behavior: reduceMotion.matches ? 'auto' : 'smooth', block: 'start' });
+}));
+let lockSpy = 0;
+function spy() {
+  if (Date.now() < lockSpy) return;
+  const r = $('#recap').getBoundingClientRect();
+  const nearBottom = innerHeight + scrollY >= document.documentElement.scrollHeight - 4;
+  setActive(r.top < innerHeight * 0.45 || nearBottom ? 'recap' : 'orders');
+}
+let spyRaf = 0;
+addEventListener('scroll', () => { cancelAnimationFrame(spyRaf); spyRaf = requestAnimationFrame(spy); }, { passive: true });
+addEventListener('resize', () => placeBrush(tabs.find(t => t.dataset.sec === activeSec), false));
+
+/* ================= settings ================= */
+const dlg = $('#settings');
+function renderSettingsStatus() {
+  const el = $('#setStatus'); if (!el) return;
+  const n = queue.length;
+  let line1, line2 = '';
+  if (!configured()) { line1 = '<b>Not connected.</b> Orders are saved on this device only.'; }
+  else {
+    const s = { ok: 'Connected', syncing: 'Syncing…', offline: 'Offline', pin: 'Wrong PIN', setup: 'Connection problem', off: 'Not connected' }[syncState] || 'Connected';
+    line1 = `<b>${s}</b>${meta.sheet ? ` to “${esc(meta.sheet)}”` : ''}.`;
+    if (syncState === 'pin') line2 = 'The PIN does not match the one in the Apps Script.';
+    else if (syncState === 'setup') line2 = 'Check the URL, and that the web app is deployed with access set to “Anyone”.';
+    else if (syncState === 'offline' && (lastDetail.fetch || lastDetail.backup)) line2 = `Could not reach Google (${[lastDetail.proxy, lastDetail.fetch, lastDetail.backup].filter(Boolean).join(' · ')}).`;
+    else line2 = meta.lastSync ? `Last synced at ${fmtTime(meta.lastSync)}.` : '';
+  }
+  el.innerHTML = `<span>${line1}</span>${line2 ? `<span class="muted">${line2}</span>` : ''}<span class="muted">${n ? `${n} ${n === 1 ? 'change' : 'changes'} waiting to upload.` : 'Everything is uploaded.'}</span>`;
+}
+function openSettings() {
+  $('#s-url').value = cfg.url || '';
+  $('#s-pin').value = cfg.pin || '';
+  $('#setError').textContent = '';
+  renderSettingsStatus();
+  if (typeof dlg.showModal === 'function') dlg.showModal(); else dlg.setAttribute('open', '');
+}
+function closeSettings() { if (typeof dlg.close === 'function') dlg.close(); else dlg.removeAttribute('open'); }
+$('#openSettings').addEventListener('click', openSettings);
+$('#syncBtn').addEventListener('click', openSettings);
+$('#closeSettings').addEventListener('click', closeSettings);
+dlg.addEventListener('click', e => { if (e.target === dlg) closeSettings(); });
+$('#saveConn').addEventListener('click', async () => {
+  const url = $('#s-url').value.trim(), pin = $('#s-pin').value.trim();
+  const err = $('#setError');
+  if (!/^https:\/\/script\.google(usercontent)?\.com\//.test(url)) { err.textContent = 'Paste the web app URL from Apps Script. It starts with https://script.google.com/'; return; }
+  if (!pin) { err.textContent = 'Enter the PIN you set in the Apps Script.'; return; }
+  err.textContent = '';
+  const btn = $('#saveConn'); btn.disabled = true; btn.textContent = 'Connecting…';
+  const prev = cfg; cfg = { url, pin };
+  try {
+    const j = await api('GET', { action: 'ping' });
+    meta.sheet = j.name || ''; lsSet(LS.meta, meta);
+    lsSet(LS.cfg, cfg);
+    setSync('syncing');
+    toast('Connected to Google Sheets.');
+    await syncNow();
+  } catch (e) {
+    cfg = prev;
+    const det = [lastDetail.proxy && 'site route: ' + lastDetail.proxy, lastDetail.fetch && 'normal route: ' + lastDetail.fetch, lastDetail.backup && 'backup route: ' + lastDetail.backup].filter(Boolean).join(' · ');
+    err.textContent = (e.code === 'pin' ? 'That PIN does not match the Apps Script.' : e.code === 'offline' ? 'Could not reach Google.' : 'Google answered, but not with the POS data. Check the URL and that access is set to “Anyone”.') + (det ? ` (Details: ${det} · v${APP_VERSION})` : ` (v${APP_VERSION})`);
+  } finally { btn.disabled = false; btn.textContent = 'Save and connect'; renderSettingsStatus(); }
+});
+$('#syncNow').addEventListener('click', async () => {
+  if (!configured()) { $('#setError').textContent = 'Connect a Google Sheet first.'; return; }
+  const ok = await syncNow();
+  toast(ok ? 'All synced.' : 'Sync did not finish. Check the status above.');
+});
+$('#forgetConn').addEventListener('click', () => {
+  cfg = { url: '', pin: '' }; lsSet(LS.cfg, cfg); setSync('off');
+  $('#s-url').value = ''; $('#s-pin').value = '';
+  toast('This device is disconnected. Orders stay saved here.');
+});
+$('#dlCsv').addEventListener('click', () => {
+  const cols = ['ID', 'Created', 'Body', 'Qty', 'Details', 'Name', 'Phone', 'Address', 'Deadline', 'Done', 'Done At'];
+  const q = v => { const s = String(v ?? ''); return /[",\n\r]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s; };
+  const lines = [cols.join(',')];
+  sortOrders([...state.orders.values()]).forEach(o => lines.push([o.id, o.createdAt || '', o.body, o.qty, o.details, o.name, o.phone, o.address, o.deadline, o.done ? 'TRUE' : 'FALSE', o.doneAt || ''].map(q).join(',')));
+  const blob = new Blob(['﻿' + lines.join('\r\n')], { type: 'text/csv;charset=utf-8' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `wprojectpos-backup-${isoDate(new Date())}.csv`;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+});
+$('#copySetup').addEventListener('click', async () => {
+  if (!configured()) { $('#setError').textContent = 'Connect this device first, then copy the link.'; return; }
+  const code = btoa(unescape(encodeURIComponent(JSON.stringify({ u: cfg.url, p: cfg.pin })))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+  const link = location.origin + location.pathname + '#connect=' + code;
+  const box = $('#setupLink');
+  try { await navigator.clipboard.writeText(link); toast('Setup link copied.'); box.hidden = true; }
+  catch (e) { box.hidden = false; box.value = link; box.focus(); box.select(); toast('Copy the selected link.'); }
+});
+async function connectFromLink() {
+  const m = /^#connect=([A-Za-z0-9_-]+)$/.exec(location.hash);
+  if (!m) return;
+  try { history.replaceState(null, '', location.pathname + location.search); } catch (e) { location.hash = ''; }
+  try {
+    const b64 = m[1].replace(/-/g, '+').replace(/_/g, '/');
+    const d = JSON.parse(decodeURIComponent(escape(atob(b64 + '==='.slice((b64.length + 3) % 4)))));
+    if (!/^https:\/\/script\.google(usercontent)?\.com\//.test(d.u) || !d.p) throw new Error('bad');
+    cfg = { url: d.u, pin: String(d.p) }; lsSet(LS.cfg, cfg);
+    toast('Connecting this device…');
+    const ok = await syncNow();
+    if (ok) toast('This device is connected.'); else openSettings();
+  } catch (e) { toast('That setup link is not valid. Copy it again from the other device.'); }
+}
+$('#replayIntro').addEventListener('click', () => { closeSettings(); playIntro(); });
+$('#logoBtn').addEventListener('click', () => playIntro());
+
+/* ================= toast ================= */
+let toastTimer = null;
+function toast(msg) {
+  const t = $('#toast'); t.textContent = msg; t.classList.add('show');
+  clearTimeout(toastTimer); toastTimer = setTimeout(() => t.classList.remove('show'), 2400);
+}
+
+/* ================= intro: paint spill forming the logo ================= */
+const clamp01 = v => v < 0 ? 0 : v > 1 ? 1 : v;
+const eo3 = t => 1 - Math.pow(1 - t, 3);
+const eo4 = t => 1 - Math.pow(1 - t, 4);
+const eio = t => t < .5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+const eback = t => { const c1 = 1.5, c3 = c1 + 1; return 1 + c3 * Math.pow(t - 1, 3) + c1 * Math.pow(t - 1, 2); };
+function mulberry32(a) { return function () { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+
+const FLY_AT = 2.35, FLY_DUR = .65;
+let introRaf = 0, introRunning = false, flyAnim = null;
+
+function buildParticles() {
+  const groups = { lp: $('#looseP'), mp: $('#mkPg'), lb: $('#looseB'), mb: $('#mkBg') };
+  Object.values(groups).forEach(g => { g.textContent = ''; });
+  const R = mulberry32(11);
+  const rnd = (a, b) => a + (b - a) * R();
+  const P = [];
+  const add = (o, keys) => {
+    o.els = keys.map(k => { const c = document.createElementNS(NS, 'circle'); c.setAttribute('r', '0'); c.setAttribute('cx', o.x0); c.setAttribute('cy', o.y0); groups[k].appendChild(c); return c; });
+    P.push(o);
+  };
+  // sh = {core, arm, drop, drip}: when each kind of loose paint starts to pull back
+  const splash = (cx, cy, t0, core, armN, armL, dropN, dropD, dripN, sh, loose, mask) => {
+    add({ x0: cx, y0: cy, x1: cx, y1: cy, r: core, t0, dur: .01, rIn: .45, rE: eo4, s0: sh.core, sDur: .42 }, [loose, mask]);
+    for (let k = 0; k < armN; k++) {
+      const a = (k / armN) * Math.PI * 2 + rnd(-.25, .25), L = rnd(armL[0], armL[1]);
+      [[.52, .22], [.82, .15], [1.08, .085]].forEach(([f, rr], j) => {
+        add({ x0: cx, y0: cy, x1: cx + Math.cos(a) * L * f, y1: cy + Math.sin(a) * L * f, r: core * rr * rnd(.8, 1.25),
+          t0: t0 + .02 + j * .03, dur: rnd(.28, .42), pE: eo3, rIn: .2, rE: eback, s0: sh.arm + .04 * j + rnd(0, .08), sDur: .3 }, j < 2 ? [loose, mask] : [loose]);
+      });
+    }
+    for (let k = 0; k < dropN; k++) {
+      const a = rnd(0, Math.PI * 2), d = rnd(dropD[0], dropD[1]);
+      add({ x0: cx, y0: cy, x1: cx + Math.cos(a) * d, y1: cy + Math.sin(a) * d * .92, r: rnd(2.2, 6.5), t0: t0 + rnd(.02, .1), dur: rnd(.26, .4), pE: eo3, rIn: .08, rE: eo3, s0: sh.drop + rnd(0, .2), sDur: .3 }, [loose]);
+    }
+    for (let k = 0; k < dripN; k++) {
+      const a = rnd(.32, .68) * Math.PI, sx = cx + Math.cos(a) * core * .86, sy = cy + Math.sin(a) * core * .86;
+      add({ x0: sx, y0: sy, x1: sx, y1: sy + rnd(core * .3, core * .55), r: rnd(core * .04, core * .06) + 3, t0: t0 + rnd(.25, .4), dur: rnd(.6, .85), pE: eio, rIn: .15, rE: eo3, s0: sh.drip + rnd(0, .1), sDur: .3 }, [loose]);
+    }
+  };
+  // 1. pink lands, spreads, then pulls back so the white lettering shows through the circle
+  splash(180, 182, .05, 150, 11, [150, 205], 18, [185, 260], 6, { core: .72, arm: .6, drop: .55, drip: .95 }, 'lp', 'mp');
+  add({ x0: 180, y0: 182, x1: 180, y1: 182, r: 250, t0: .18, dur: .01, rIn: .55, rE: eio }, ['mp']);
+  // 2. four blue splashes hit and spread outward, drawing the outline as they go
+  [[52, 96, .78, 54], [312, 58, .9, 58], [334, 292, 1.02, 52], [96, 300, 1.14, 56]].forEach(([x, y, t, c]) => {
+    splash(x, y, t, c, 8, [70, 110], 9, [95, 150], 2, { core: t + .4, arm: t + .34, drop: t + .45, drip: t + .62 }, 'lb', 'mb');
+    add({ x0: x, y0: y, x1: x, y1: y, r: 265, t0: t + .06, dur: .01, rIn: .95, rE: eio }, ['mb']);
+  });
+  return P;
+}
+function drawParticles(P, t) {
+  for (const p of P) {
+    const u = p.dur > .02 ? clamp01((t - p.t0) / p.dur) : (t >= p.t0 ? 1 : 0);
+    const e = p.pE ? p.pE(u) : u;
+    let r = t < p.t0 ? 0 : p.r * p.rE(clamp01((t - p.t0) / p.rIn));
+    if (p.s0 != null && t > p.s0) r *= 1 - eio(clamp01((t - p.s0) / p.sDur));
+    if (r < 0) r = 0;
+    const x = p.x0 + (p.x1 - p.x0) * e, y = p.y0 + (p.y1 - p.y0) * e;
+    const rs = r.toFixed(2), xs = x.toFixed(2), ys = y.toFixed(2);
+    for (const el of p.els) { el.setAttribute('r', rs); el.setAttribute('cx', xs); el.setAttribute('cy', ys); }
+  }
+}
+function markIntroSeen() {
+  try { const d = new Date(); localStorage.setItem(LS.intro, d.getFullYear() + '-' + (d.getMonth() + 1) + '-' + d.getDate()); } catch (e) {}
+}
+function endIntro(fast) {
+  cancelAnimationFrame(introRaf);
+  introRunning = false;
+  markIntroSeen();
+  const intro = $('#intro');
+  const done = () => {
+    document.documentElement.classList.remove('intro-on');
+    intro.getAnimations().forEach(a => a.cancel());
+    $('#introSvg').getAnimations().forEach(a => a.cancel());
+    intro.style.cssText = '';
+    $('#introSvg').style.cssText = '';
+    flyAnim = null;
+    placeBrush(tabs.find(t => t.dataset.sec === activeSec), true);
+  };
+  if (fast) {
+    intro.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 220, easing: 'ease-out' }).onfinish = done;
+  } else done();
+}
+function fly() {
+  const svg = $('#introSvg'), intro = $('#intro');
+  const box = $('#introBox').getBoundingClientRect();
+  const hdr = $('#hdrLogo').getBoundingClientRect();
+  const sr = svg.getBoundingClientRect();
+  if (!box.width || !hdr.width || hdr.bottom < 0) { endIntro(true); return; }
+  const k = hdr.width / box.width;
+  const ox = box.left - sr.left, oy = box.top - sr.top;
+  const tx = hdr.left - box.left, ty = hdr.top - box.top;
+  svg.style.transformOrigin = `${ox}px ${oy}px`;
+  flyAnim = svg.animate([{ transform: 'none' }, { transform: `translate(${tx}px,${ty}px) scale(${k})` }], { duration: FLY_DUR * 1000, easing: 'cubic-bezier(.65,0,.25,1)', fill: 'forwards' });
+  intro.animate([{ backgroundColor: 'rgba(255,255,255,1)' }, { backgroundColor: 'rgba(255,255,255,0)' }], { duration: FLY_DUR * 1000, easing: 'ease-in', fill: 'forwards' });
+  $('#skipIntro').style.visibility = 'hidden';
+  flyAnim.onfinish = () => endIntro(false);
+}
+function playIntro() {
+  if (reduceMotion.matches || introRunning) return;
+  scrollTo(0, 0);
+  document.documentElement.classList.add('intro-on');
+  const intro = $('#intro');
+  intro.style.animation = 'none';
+  $('#skipIntro').style.visibility = '';
+  const P = buildParticles();
+  drawParticles(P, 0);
+  introRunning = true;
+  const start = performance.now();
+  let flew = false;
+  const step = now => {
+    const t = (now - start) / 1000;
+    drawParticles(P, Math.min(t, FLY_AT));
+    if (t >= FLY_AT && !flew) { flew = true; fly(); return; }
+    introRaf = requestAnimationFrame(step);
+  };
+  introRaf = requestAnimationFrame(step);
+}
+$('#skipIntro').addEventListener('click', () => endIntro(true));
+
+/* ================= boot ================= */
+const t0 = new Date();
+$('#today').textContent = `${DAYS[t0.getDay()]}, ${t0.getDate()} ${MONTHS[t0.getMonth()]} ${t0.getFullYear()}`;
+renderAll();
+updateSyncUI();
+const introOn = document.documentElement.classList.contains('intro-on');
+placeBrush(tabs[0], !introOn);
+if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => placeBrush(tabs.find(t => t.dataset.sec === activeSec), false));
+if (introOn) requestAnimationFrame(() => playIntro());
+$('#appVer').textContent = APP_VERSION;
+if (/^#connect=/.test(location.hash)) connectFromLink(); else if (configured()) syncNow();
+})();
+</script>
+</body>
+</html>
