@@ -4,11 +4,16 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>W Project POS</title>
+<meta name="description" content="Order board for W Project custom Mini 4WD body paint.">
 <meta name="theme-color" content="#FFFFFF">
+<meta name="application-name" content="W Project">
+<meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="W Project">
 <link rel="apple-touch-icon" href="icon-180.png">
-<link rel="icon" type="image/png" href="icon-180.png">
+<link rel="icon" type="image/png" sizes="32x32" href="icon-32.png">
+<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -360,6 +365,15 @@ dialog.settings::backdrop{background:rgba(21,26,51,.38);-webkit-backdrop-filter:
 .toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translate(-50%,20px);opacity:0;background:var(--tip-bg);color:var(--tip-fg);padding:10px 18px;border-radius:999px;font-weight:500;font-size:13px;z-index:90;transition:transform .3s cubic-bezier(.2,1.3,.4,1),opacity .2s;pointer-events:none;max-width:calc(100% - 32px);text-align:center;box-shadow:0 10px 30px rgba(22,32,84,.25)}
 .toast.show{opacity:1;transform:translate(-50%,0)}
 footer{text-align:center;color:var(--faint);font-size:12px}
+.update-bar{position:fixed;left:50%;bottom:calc(16px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);z-index:95;display:flex;align-items:center;gap:12px;max-width:calc(100% - 32px);background:var(--tip-bg);color:var(--tip-fg);padding:8px 8px 8px 18px;border-radius:999px;font-size:13px;font-weight:500;box-shadow:0 10px 30px rgba(22,32,84,.25);animation:barIn .35s cubic-bezier(.2,1.3,.4,1) both}
+.update-bar button{border:0;border-radius:999px;padding:7px 14px;font-size:12.5px;font-weight:700;color:#fff;background:var(--grad-btn);cursor:pointer;white-space:nowrap}
+@keyframes barIn{from{transform:translate(-50%,20px);opacity:0}}
+.steps{margin:0;padding-left:18px;font-size:12.5px;color:var(--muted);display:grid;gap:3px}
+.steps b{color:var(--text);font-weight:600}
+.ok-line{display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--tosca-text);font-weight:600}
+.ok-line::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--tosca)}
+.paste-row{display:flex;gap:8px}
+.paste-row .inp{flex:1;min-width:0;padding-block:8px;font-size:13px}
 
 @media (prefers-reduced-motion: reduce){
   *,*::before,*::after{animation-duration:.001ms!important;animation-iteration-count:1!important;transition-duration:.001ms!important}
@@ -580,11 +594,20 @@ footer{text-align:center;color:var(--faint);font-size:12px}
       <button class="btn-main" type="button" id="saveConn">Save and connect</button>
       <button class="btn-ghost" type="button" id="syncNow">Sync now</button>
     </div>
+    <div class="set-sec" id="installSec">
+      <h3>Install the app</h3>
+      <div id="installBody"></div>
+    </div>
     <div class="set-sec">
       <h3>Connect another device</h3>
-      <p>Copy this link on a connected device, send it to your phone (for example by WhatsApp to yourself), and open it there. The phone connects without typing the URL. The link contains your PIN, so only send it to yourself.</p>
+      <p>Copy this link on a connected device and send it to yourself, for example by WhatsApp. Open it on the other device, or paste it below. The link contains your PIN, so only send it to yourself.</p>
       <div class="set-row"><button class="mini" type="button" id="copySetup">Copy setup link</button></div>
       <input class="inp" id="setupLink" readonly hidden aria-label="Setup link">
+      <label class="lbl" for="pasteLink">Paste a setup link</label>
+      <div class="paste-row">
+        <input class="inp" id="pasteLink" type="url" inputmode="url" placeholder="https://…#connect=…" spellcheck="false" autocomplete="off">
+        <button class="mini" type="button" id="usePaste">Connect</button>
+      </div>
     </div>
     <div class="set-sec">
       <h3>Backup</h3>
@@ -600,6 +623,7 @@ footer{text-align:center;color:var(--faint);font-size:12px}
 </dialog>
 
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
+<div class="update-bar" id="updateBar" role="status" hidden><span>A new version is ready.</span><button type="button" id="updateNow">Update</button></div>
 
 <script>
 (() => {
@@ -671,7 +695,7 @@ function enqueue(op) {
 class SyncError extends Error { constructor(code) { super(code); this.code = code; } }
 // Normal route is fetch. If the browser blocks it (CORS, extensions, some networks),
 // fall back to a script-tag request, which Apps Script answers as JSONP.
-const APP_VERSION = '1.5';
+const APP_VERSION = '1.6';
 const lastDetail = { fetch: '', backup: '', proxy: '' };
 let transport = lsGet('wpos-transport', 'fetch') === 'jsonp' ? 'jsonp' : 'fetch';
 function jsonp(params) {
@@ -1387,8 +1411,19 @@ async function connectFromLink() {
   const m = /^#connect=([A-Za-z0-9_-]+)$/.exec(location.hash);
   if (!m) return;
   try { history.replaceState(null, '', location.pathname + location.search); } catch (e) { location.hash = ''; }
+  connectWithCode(m[1]);
+}
+$('#usePaste').addEventListener('click', () => {
+  const m = /#connect=([A-Za-z0-9_-]+)/.exec($('#pasteLink').value.trim());
+  if (!m) { $('#setError').textContent = 'That does not look like a setup link. Copy it again with “Copy setup link”.'; return; }
+  $('#setError').textContent = '';
+  $('#pasteLink').value = '';
+  closeSettings();
+  connectWithCode(m[1]);
+});
+async function connectWithCode(code) {
   try {
-    const b64 = m[1].replace(/-/g, '+').replace(/_/g, '/');
+    const b64 = code.replace(/-/g, '+').replace(/_/g, '/');
     const d = JSON.parse(decodeURIComponent(escape(atob(b64 + '==='.slice((b64.length + 3) % 4)))));
     if (!/^https:\/\/script\.google(usercontent)?\.com\//.test(d.u) || !d.p) throw new Error('bad');
     cfg = { url: d.u, pin: String(d.p) }; lsSet(LS.cfg, cfg);
@@ -1481,6 +1516,51 @@ addEventListener('resize', () => { clearTimeout(heroRz); heroRz = setTimeout(her
 if (narrowMQ.addEventListener) narrowMQ.addEventListener('change', heroSetup);
 if (reduceMotion.addEventListener) reduceMotion.addEventListener('change', heroSetup);
 
+/* ================= installable app (PWA) ================= */
+const isStandalone = () => matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+const isIOS = /iP(hone|ad|od)/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+let installEvent = null;
+addEventListener('beforeinstallprompt', e => { e.preventDefault(); installEvent = e; renderInstall(); });
+addEventListener('appinstalled', () => { installEvent = null; renderInstall(); toast('W Project is installed.'); });
+function renderInstall() {
+  const el = $('#installBody'); if (!el) return;
+  if (isStandalone()) {
+    el.innerHTML = '<p class="ok-line">You are using the installed app.</p>';
+  } else if (installEvent) {
+    el.innerHTML = '<p>Add W Project to your home screen or desktop. It opens in its own window and works without internet; changes upload when you are back online.</p><div class="set-row"><button class="mini" type="button" id="installBtn">Install app</button></div>';
+  } else if (isIOS) {
+    el.innerHTML = '<ol class="steps"><li>Open this page in <b>Safari</b>.</li><li>Tap <b>Share</b>, then <b>Add to Home Screen</b>.</li><li>Open W Project from the home screen and connect it once with your setup link. The installed app keeps its own settings.</li></ol>';
+  } else {
+    el.innerHTML = '<p>Use your browser menu to install this page as an app (look for <b>Install</b> or <b>Add to Home screen</b>). If it is already installed, open it from your apps.</p>';
+  }
+}
+document.addEventListener('click', async e => {
+  if (!e.target.closest('#installBtn') || !installEvent) return;
+  const ev = installEvent; installEvent = null;
+  try { await ev.prompt(); await ev.userChoice; } catch (err) {}
+  renderInstall();
+});
+
+let swReg = null, swReloading = false;
+function showUpdate() { $('#updateBar').hidden = false; }
+$('#updateNow').addEventListener('click', () => {
+  const w = swReg && swReg.waiting;
+  if (w) { swReloading = true; w.postMessage('skipWaiting'); } else location.reload();
+});
+async function registerSW() {
+  if (!('serviceWorker' in navigator) || !/^https?:$/.test(location.protocol)) return;
+  try {
+    const hadController = !!navigator.serviceWorker.controller;
+    swReg = await navigator.serviceWorker.register('sw.js', { scope: './' });
+    const watch = w => { if (!w) return; w.addEventListener('statechange', () => { if (w.state === 'installed' && navigator.serviceWorker.controller) showUpdate(); }); };
+    if (swReg.waiting && hadController) showUpdate();
+    watch(swReg.installing);
+    swReg.addEventListener('updatefound', () => watch(swReg.installing));
+    navigator.serviceWorker.addEventListener('controllerchange', () => { if (swReloading) location.reload(); });
+    document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') swReg.update().catch(() => {}); });
+  } catch (e) {}
+}
+
 /* ================= boot ================= */
 const t0 = new Date();
 $('#today').textContent = `${DAYS[t0.getDay()]}, ${t0.getDate()} ${MONTHS[t0.getMonth()]} ${t0.getFullYear()}`;
@@ -1491,6 +1571,12 @@ placeBrush(tabs[0], true);
 if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { heroSetup(); placeBrush(tabs.find(t => t.dataset.sec === activeSec), false); });
 addEventListener('load', heroSetup);
 $('#appVer').textContent = APP_VERSION;
+renderInstall();
+registerSW();
+if (/^#(orders|recap)$/.test(location.hash)) {
+  const jump = () => { const t = document.getElementById(location.hash.slice(1)); if (t) { lockSpy = Date.now() + 600; setActive(t.id, false); t.scrollIntoView({ block: 'start' }); } };
+  addEventListener('load', () => requestAnimationFrame(jump));
+}
 if (/^#connect=/.test(location.hash)) connectFromLink(); else if (configured()) syncNow();
 })();
 </script>
