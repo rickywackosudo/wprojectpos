@@ -2,7 +2,7 @@
  "id": "/",
  "name": "W Project POS",
  "short_name": "W Project",
- "description": "Order board for W Project custom Mini 4WD body paint: orders, deadlines, and monthly and yearly recaps.",
+ "description": "Order board for W Project custom Mini 4WD body paint: paint queue, new orders, deadlines, and monthly and yearly recaps.",
  "lang": "en",
  "start_url": "/",
  "scope": "/",
@@ -10,70 +10,19 @@
  "orientation": "any",
  "background_color": "#FFFFFF",
  "theme_color": "#FFFFFF",
- "categories": [
-  "business",
-  "productivity"
- ],
+ "categories": ["business", "productivity"],
  "icons": [
-  {
-   "src": "icon-192.png",
-   "sizes": "192x192",
-   "type": "image/png",
-   "purpose": "any"
-  },
-  {
-   "src": "icon-512.png",
-   "sizes": "512x512",
-   "type": "image/png",
-   "purpose": "any"
-  },
-  {
-   "src": "icon-maskable-512.png",
-   "sizes": "512x512",
-   "type": "image/png",
-   "purpose": "maskable"
-  }
+  {"src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any"},
+  {"src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any"},
+  {"src": "icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable"}
  ],
  "shortcuts": [
-  {
-   "name": "New order",
-   "short_name": "New order",
-   "url": "/#orders",
-   "icons": [
-    {
-     "src": "icon-192.png",
-     "sizes": "192x192",
-     "type": "image/png"
-    }
-   ]
-  },
-  {
-   "name": "Recap",
-   "short_name": "Recap",
-   "url": "/#recap",
-   "icons": [
-    {
-     "src": "icon-192.png",
-     "sizes": "192x192",
-     "type": "image/png"
-    }
-   ]
-  }
+  {"name": "Paint queue", "short_name": "Queue", "url": "/#queue", "icons": [{"src": "icon-192.png", "sizes": "192x192", "type": "image/png"}]},
+  {"name": "New order", "short_name": "New order", "url": "/#order", "icons": [{"src": "icon-192.png", "sizes": "192x192", "type": "image/png"}]},
+  {"name": "Recap", "short_name": "Recap", "url": "/#recap", "icons": [{"src": "icon-192.png", "sizes": "192x192", "type": "image/png"}]}
  ],
  "screenshots": [
-  {
-   "src": "screenshot-wide.png",
-   "sizes": "1280x800",
-   "type": "image/png",
-   "form_factor": "wide",
-   "label": "Create Beyond Limits order board on a laptop"
-  },
-  {
-   "src": "screenshot-narrow.png",
-   "sizes": "780x1688",
-   "type": "image/png",
-   "form_factor": "narrow",
-   "label": "Create Beyond Limits order board on a phone"
-  }
+  {"src": "screenshot-wide.png", "sizes": "1280x800", "type": "image/png", "form_factor": "wide", "label": "Paint queue on a laptop"},
+  {"src": "screenshot-narrow.png", "sizes": "780x1688", "type": "image/png", "form_factor": "narrow", "label": "Create Beyond Limits opening on a phone"}
  ]
 }

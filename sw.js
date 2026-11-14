@@ -3,7 +3,7 @@
  * - The page itself is always fetched fresh when online, so new versions arrive right away.
  * - Order data never goes through here: /api and Google Apps Script requests are left alone.
  */
-const VERSION = '1.6';
+const VERSION = '1.7';
 const SHELL = 'wpos-shell-' + VERSION;
 const FONTS = 'wpos-fonts';
 const SHELL_FILES = ['/', '/manifest.webmanifest', '/icon-32.png', '/icon-180.png', '/icon-192.png', '/icon-512.png', '/icon-maskable-512.png'];
