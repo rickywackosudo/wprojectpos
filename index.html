@@ -385,6 +385,35 @@ dialog.settings::backdrop{background:rgba(21,26,51,.38);-webkit-backdrop-filter:
 .paste-row{display:flex;gap:8px}
 .paste-row .inp{flex:1;min-width:0;padding-block:8px;font-size:13px}
 
+/* ---------- import from Notes ---------- */
+.head-r{display:flex;align-items:center;gap:12px}
+.mini.imp-btn{display:inline-flex;align-items:center;gap:6px}
+.mini.imp-btn svg{width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
+dialog.import{width:min(760px,calc(100% - 24px));overflow:auto}
+.import .set-actions{position:sticky;bottom:0;background:var(--surface);padding:12px 0 4px;margin-top:-4px;box-shadow:0 -10px 14px -8px rgba(255,255,255,.95)}
+.imp-help{margin:0;font-size:12.5px;color:var(--muted)}
+.imp-help code{font-family:inherit;font-size:12px;background:var(--soft);padding:1px 6px;border-radius:6px;color:var(--text);overflow-wrap:anywhere}
+.imp-text{min-height:150px;font-size:13px;line-height:1.55}
+.imp-row{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between}
+.imp-row .lbl{margin-right:6px}
+.file-btn{position:relative;overflow:hidden;display:inline-flex;align-items:center}
+.file-btn input{position:absolute;inset:0;opacity:0;cursor:pointer}
+.imp-sum{margin:0;font-size:13px;display:flex;flex-wrap:wrap;gap:4px 14px}
+.imp-sum b{font-weight:700}
+.imp-sum .bad{color:var(--pink-text)}
+.imp-sum .dim{color:var(--muted)}
+.imp-list{list-style:none;margin:0;padding:0;max-height:min(40vh,340px);overflow:auto;border:1px solid var(--line);border-radius:12px;overscroll-behavior:contain}
+.imp-list:empty{display:none}
+.imp-list li{display:grid;grid-template-columns:30px minmax(0,1fr) auto;gap:4px 10px;align-items:center;padding:8px 12px;border-top:1px solid var(--line);font-size:12.5px;line-height:1.4}
+.imp-list li:first-child{border-top:0}
+.imp-n{color:var(--faint);font-variant-numeric:tabular-nums}
+.imp-main{min-width:0;overflow-wrap:anywhere}
+.imp-main b{font-weight:600}
+.imp-main span{color:var(--muted)}
+.imp-main em{font-style:normal;color:var(--pink-text);font-weight:500}
+.imp-list li.bad{background:var(--pink-soft)}
+.imp-list li.skip .imp-main{opacity:.55}
+
 @media (prefers-reduced-motion: reduce){
   *,*::before,*::after{animation-duration:.001ms!important;animation-iteration-count:1!important;transition-duration:.001ms!important;transition-delay:0s!important;animation-delay:0s!important}
 }
@@ -411,7 +440,10 @@ dialog.settings::backdrop{background:rgba(21,26,51,.38);-webkit-backdrop-filter:
   <section class="view" id="v-queue" data-view="queue" aria-labelledby="queueTitle" hidden>
     <div class="view-head">
       <h2 class="ttl" id="queueTitle">Paint queue</h2>
-      <span class="today" id="today"></span>
+      <div class="head-r">
+        <span class="today" id="today"></span>
+        <button class="mini imp-btn" type="button" data-open-import><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11M7.5 10.5 12 15l4.5-4.5M5 19h14"/></svg>Import</button>
+      </div>
     </div>
     <div class="stats" aria-label="Quick look">
       <div class="stat">
@@ -596,6 +628,33 @@ dialog.settings::backdrop{background:rgba(21,26,51,.38);-webkit-backdrop-filter:
   </form>
 </dialog>
 
+<dialog class="settings import" id="importDlg" aria-labelledby="impTitle">
+  <form class="set-in" id="impForm" method="dialog" novalidate>
+    <div class="set-head">
+      <h2 class="ttl" id="impTitle">Import orders</h2>
+      <button class="icon-btn" type="button" id="closeImport" aria-label="Close"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
+    </div>
+    <p class="imp-help">Paste your list from Notes, one order per line, as many lines as you like: <code>body - qty - name - phone - deadline</code>. For example <code>Avante Mk.III - 2 - Raka - 0812 3456 7890 - 20 Nov</code>. Anything after the deadline goes into the order details.</p>
+    <label class="sr" for="impText">Orders to import</label>
+    <textarea class="inp imp-text" id="impText" spellcheck="false" autocomplete="off" placeholder="Avante Mk.III - 2 - Raka - 0812 3456 7890 - 20 Nov&#10;Beak Spider - 1 - Sinta - 0813 1111 2222 - 18/11&#10;Mach Frame - 3 - Om Bill - 0857 0000 1111 - 2026-11-30"></textarea>
+    <div class="imp-row">
+      <span class="mini file-btn">Open a .txt file<input type="file" id="impFile" accept=".txt,text/plain" aria-label="Open a text file"></span>
+      <div><span class="lbl" id="impAsLbl">Import as</span>
+        <div class="seg" role="group" aria-labelledby="impAsLbl">
+          <button type="button" data-imp-as="done" aria-pressed="true">Done</button>
+          <button type="button" data-imp-as="todo" aria-pressed="false">In queue</button>
+        </div>
+      </div>
+    </div>
+    <p class="imp-sum" id="impSum" aria-live="polite"></p>
+    <ol class="imp-list" id="impList"></ol>
+    <div class="set-actions">
+      <button class="btn-main" type="button" id="impGo" disabled>Import</button>
+      <button class="btn-ghost" type="button" id="impCancel">Cancel</button>
+    </div>
+  </form>
+</dialog>
+
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 <div class="update-bar" id="updateBar" role="status" hidden><span>A new version is ready.</span><button type="button" id="updateNow">Update</button></div>
 
@@ -674,7 +733,7 @@ function enqueue(op) {
 class SyncError extends Error { constructor(code) { super(code); this.code = code; } }
 // Normal route is fetch. If the browser blocks it (CORS, extensions, some networks),
 // fall back to a script-tag request, which Apps Script answers as JSONP.
-const APP_VERSION = '1.7';
+const APP_VERSION = '1.8';
 const lastDetail = { fetch: '', backup: '', proxy: '' };
 let transport = lsGet('wpos-transport', 'fetch') === 'jsonp' ? 'jsonp' : 'fetch';
 function jsonp(params) {
@@ -769,7 +828,7 @@ async function flush() {
   flushing = true; updateSyncUI();
   try {
     while (queue.length) {
-      let batch = queue.slice(0, transport === 'jsonp' ? 12 : 50);
+      let batch = queue.slice(0, transport === 'jsonp' ? 12 : 15);
       if (transport === 'jsonp') while (batch.length > 1 && encodeURIComponent(JSON.stringify(batch)).length > 5500) batch = batch.slice(0, batch.length - 1);
       batch.forEach(q => inflight.add(q.seq));
       try {
@@ -992,8 +1051,8 @@ function renderList() {
     empty.hidden = false;
     if (!all.length) {
       empty.innerHTML = configured()
-        ? `<span class="ttl">No orders yet</span><p>Add your first order and it shows up here.</p><button type="button" class="mini" data-go="order">New order</button>`
-        : `<span class="ttl">No orders yet</span><p>Connect your Google Sheet to load your orders, or add a new one.</p><div class="set-row"><button type="button" class="mini" data-open-settings>Connect Google Sheet</button><button type="button" class="mini plain" data-go="order">New order</button></div>`;
+        ? `<span class="ttl">No orders yet</span><p>Add your first order and it shows up here.</p><div class="set-row"><button type="button" class="mini" data-go="order">New order</button><button type="button" class="mini plain" data-open-import>Import from Notes</button></div>`
+        : `<span class="ttl">No orders yet</span><p>Connect your Google Sheet to load your orders, or add a new one.</p><div class="set-row"><button type="button" class="mini" data-open-settings>Connect Google Sheet</button><button type="button" class="mini plain" data-go="order">New order</button><button type="button" class="mini plain" data-open-import>Import from Notes</button></div>`;
     } else empty.innerHTML = `<span class="ttl">Nothing here</span><p>Try another filter or clear the search.</p>`;
   }
 }
@@ -1250,7 +1309,7 @@ document.addEventListener('click', e => {
   const g = e.target.closest('[data-go]'); if (g) go(g.dataset.go);
 });
 document.addEventListener('keydown', e => {
-  if (e.key !== 'Escape' || $('#settings').open) return;
+  if (e.key !== 'Escape' || $('#settings').open || $('#importDlg').open) return;
   const typing = e.target && /^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName);
   if (state.confirmId) { state.confirmId = null; renderList(); }
   else if (state.editingId && current === 'order') { resetForm(); go('queue'); }
@@ -1385,6 +1444,148 @@ async function connectWithCode(code) {
     if (ok) toast('This device is connected.'); else openSettings();
   } catch (e) { toast('That setup link is not valid. Copy it again from the other device.'); }
 }
+
+/* ================= import a list of orders (pasted from Notes, or a .txt file) ================= */
+// Each line is one order: body - qty - name - phone - deadline. Fields are recognised by what they look like
+// (a date, a phone number, a small number), so a missing or swapped field still works; body comes before name.
+const MON = { jan: 0, januari: 0, january: 0, feb: 1, februari: 1, february: 1, mar: 2, maret: 2, march: 2, apr: 3, april: 3,
+  mei: 4, may: 4, jun: 5, juni: 5, june: 5, jul: 6, juli: 6, july: 6, agu: 7, agt: 7, agus: 7, agustus: 7, aug: 7, august: 7,
+  sep: 8, sept: 8, september: 8, okt: 9, oct: 9, oktober: 9, october: 9, nov: 10, nop: 10, nopember: 10, november: 10,
+  des: 11, dec: 11, desember: 11, december: 11 };
+function looseDate(raw) {
+  let s = String(raw).toLowerCase().replace(/[,.]/g, ' ').replace(/\s+/g, ' ').trim();
+  s = s.replace(/^(?:deadline|dl|tgl|tanggal|due)\s*:?\s*/, '').replace(/^(?:sen|sel|rab|kam|jum|sab|min|mon|tue|wed|thu|fri|sat|sun)[a-z']*\s+/, '');
+  let y = null, mo = null, d = null, m;
+  if ((m = /^(\d{4})\/(\d{1,2})\/(\d{1,2})$/.exec(s))) { y = +m[1]; mo = +m[2] - 1; d = +m[3]; }
+  else if ((m = /^(\d{1,2})\/(\d{1,2})(?:\/(\d{2}|\d{4}))?$/.exec(s))) { d = +m[1]; mo = +m[2] - 1; y = m[3] ? +m[3] : null; }
+  else if ((m = /^(\d{1,2}) ?([a-z]+)(?: (\d{2}|\d{4}))?$/.exec(s))) { d = +m[1]; mo = MON[m[2]] ?? MON[m[2].slice(0, 3)]; y = m[3] ? +m[3] : null; }
+  else if ((m = /^([a-z]+) (\d{1,2})(?: (\d{4}))?$/.exec(s))) { mo = MON[m[1]] ?? MON[m[1].slice(0, 3)]; d = +m[2]; y = m[3] ? +m[3] : null; }
+  else return null;
+  if (mo == null || mo < 0 || mo > 11 || !d) return null;
+  if (y != null && y < 100) y += 2000;
+  const t = todayDate();
+  let dt = new Date(y ?? t.getFullYear(), mo, d);
+  if (dt.getMonth() !== mo || dt.getDate() !== d) return null;
+  if (y == null && dayDiff(dt, t) > 183) dt = new Date(t.getFullYear() - 1, mo, d);   // no year: the nearest one
+  return isoDate(dt);
+}
+const phoneLike = s => /^[+\d][\d\s().-]*$/.test(s) && s.replace(/\D/g, '').length >= 8 && s.replace(/\D/g, '').length <= 15;
+const qtyOf = s => { const m = /^(?:qty\s*:?\s*|x\s*)?(\d{1,3})\s*(?:x|pcs?|body|bodies|unit|buah|bh)?$/i.exec(s); return m && +m[1] >= 1 ? +m[1] : null; };
+function parseLine(line) {
+  let s = line.replace(/ /g, ' ').trim()
+    .replace(/^(?:[-–—•◦▪●○*·✓✔☐☑✅]+\s+|\d{1,3}[.)]\s+)/, '');                // bullets and numbering from Notes
+  if (!s) return null;
+  s = s.replace(/\b(\d{4})-(\d{1,2})-(\d{1,2})\b/g, '$1/$2/$3').replace(/\b(\d{1,2})-(\d{1,2})-(\d{2,4})\b/g, '$1/$2/$3')
+       .replace(/(^|[^\d/])(\+?\d{3,5}(?:-\d{3,5}){1,3})(?![\d/])/g, (a, pre, num) => pre + num.replace(/-/g, ' '));   // 0812-3456-7890
+  const sep = /\s[-–—]\s/.test(s) ? /\s+[-–—]\s+/ : /[|\t;]/.test(s) ? /\s*[|\t;]\s*/ : /,/.test(s) ? /\s*,\s*/ : /\s*[-–—]\s*/;
+  const parts = s.split(sep).map(x => x.trim()).filter(Boolean);
+  const o = { body: '', qty: null, name: '', phone: '', deadline: '', details: '' };
+  const rest = [];
+  parts.forEach(p => {
+    if (!o.deadline) { const d = looseDate(p); if (d) { o.deadline = d; return; } }
+    if (!o.phone && phoneLike(p)) { o.phone = p.replace(/\s+/g, ' ').slice(0, 24); return; }
+    if (o.qty == null) { const q = qtyOf(p); if (q != null) { o.qty = Math.min(999, q); return; } }
+    rest.push(p);
+  });
+  o.body = (rest[0] || '').slice(0, 80);
+  o.name = (rest[1] || '').slice(0, 60);
+  o.details = rest.slice(2).join(' - ').slice(0, 1000);
+  const looksLikeOrder = o.deadline || o.phone || o.qty != null;
+  if (!looksLikeOrder) return { skip: true, why: 'not an order', o };                 // headings and notes
+  o.qty = o.qty || 1;
+  const miss = [];
+  if (!o.body) miss.push('body');
+  if (!o.name && !o.phone) miss.push('name or phone');
+  if (!o.deadline) miss.push('deadline');
+  return { o, why: miss.length ? 'missing ' + miss.join(', ') : '' };
+}
+const dupKey = o => [String(o.body).trim().toLowerCase(), o.qty, o.deadline, String(o.phone || '').replace(/\D/g, '') || String(o.name).trim().toLowerCase()].join('|');
+const imp = { as: 'done', rows: [] };
+function parseImport() {
+  const seen = new Set([...state.orders.values()].map(dupKey)), inList = new Set();
+  imp.rows = [];
+  $('#impText').value.split(/\r?\n/).forEach((line, i) => {
+    const r = parseLine(line);
+    if (!r) return;
+    r.n = i + 1;
+    if (!r.skip && !r.why) {
+      const k = dupKey(r.o);
+      if (seen.has(k)) { r.skip = true; r.why = 'already in the POS'; }
+      else if (inList.has(k)) { r.skip = true; r.why = 'twice in this list'; }
+      else inList.add(k);
+    }
+    imp.rows.push(r);
+  });
+  renderImport();
+}
+function renderImport() {
+  const ok = imp.rows.filter(r => !r.skip && !r.why), bad = imp.rows.filter(r => !r.skip && r.why), skip = imp.rows.filter(r => r.skip);
+  const t = todayDate();
+  $('#impList').innerHTML = imp.rows.map(r => {
+    const o = r.o, d = parseDate(o.deadline);
+    const cls = r.skip ? 'skip' : r.why ? 'bad' : '';
+    const chip = r.skip ? `<span class="chip ok">${esc(r.why === 'not an order' ? 'Skipped' : 'Double')}</span>` : r.why ? `<span class="chip late">Fix</span>` : `<span class="chip done">Ready</span>`;
+    const bits = [o.name && esc(o.name), o.phone && esc(o.phone), d && fmtDate(d)].filter(Boolean).join(' · ');
+    return `<li class="${cls}"><span class="imp-n">${r.n}</span><span class="imp-main"><b>${esc(o.body || '(no body)')}</b>${r.why === 'not an order' ? '' : ' ×' + (o.qty || 1)}${bits ? ` <span>· ${bits}</span>` : ''}${r.why && !r.skip ? `<br><em>${esc(r.why)}</em>` : r.skip && r.why !== 'not an order' ? `<br><span>${r.why === 'twice in this list' ? 'same order is already higher up in this list' : 'already in the POS'}, will not be added twice</span>` : ''}</span>${chip}</li>`;
+  }).join('');
+  const parts = [];
+  if (ok.length) parts.push(`<b>${ok.length} ${ok.length === 1 ? 'order' : 'orders'} ready</b>`);
+  if (bad.length) parts.push(`<span class="bad">${bad.length} ${bad.length === 1 ? 'line needs' : 'lines need'} fixing (edit the text above)</span>`);
+  if (skip.length) parts.push(`<span class="dim">${skip.length} skipped</span>`);
+  $('#impSum').innerHTML = imp.rows.length ? parts.join('') : '';
+  const go = $('#impGo');
+  go.disabled = !ok.length;
+  go.textContent = ok.length ? `Import ${ok.length} ${ok.length === 1 ? 'order' : 'orders'} as ${imp.as === 'done' ? 'done' : 'in queue'}` : 'Import';
+}
+const impDlg = $('#importDlg');
+function openImport() {
+  parseImport();
+  if (typeof impDlg.showModal === 'function') impDlg.showModal(); else impDlg.setAttribute('open', '');
+}
+function closeImport() { if (typeof impDlg.close === 'function') impDlg.close(); else impDlg.removeAttribute('open'); }
+document.addEventListener('click', e => { if (e.target.closest('[data-open-import]')) openImport(); });
+$('#closeImport').addEventListener('click', closeImport);
+$('#impCancel').addEventListener('click', closeImport);
+impDlg.addEventListener('click', e => { if (e.target === impDlg) closeImport(); });
+let impTimer = 0;
+$('#impText').addEventListener('input', () => { clearTimeout(impTimer); impTimer = setTimeout(parseImport, 150); });
+$('#impFile').addEventListener('change', async e => {
+  const f = e.target.files && e.target.files[0]; if (!f) return;
+  try { const txt = await f.text(); const ta = $('#impText'); ta.value = (ta.value.trim() ? ta.value.replace(/\s+$/, '') + '\n' : '') + txt; parseImport(); }
+  catch (err) { toast('Could not read that file.'); }
+  e.target.value = '';
+});
+document.querySelectorAll('[data-imp-as]').forEach(b => b.addEventListener('click', () => {
+  imp.as = b.dataset.impAs;
+  document.querySelectorAll('[data-imp-as]').forEach(x => x.setAttribute('aria-pressed', String(x === b)));
+  renderImport();
+}));
+$('#impGo').addEventListener('click', () => {
+  const ok = imp.rows.filter(r => !r.skip && !r.why);
+  if (!ok.length) return;
+  const done = imp.as === 'done', now = new Date();
+  ok.forEach(r => {
+    const d = parseDate(r.o.deadline);
+    const at = d && new Date(d.getFullYear(), d.getMonth(), d.getDate(), 12) < now ? new Date(d.getFullYear(), d.getMonth(), d.getDate(), 12) : now;
+    const o = norm(newId(), { ...r.o, done, doneAt: done ? at.toISOString() : null, createdAt: now.toISOString() });
+    o.updatedAt = now.toISOString();
+    state.orders.set(o.id, o);
+    queue.push({ seq: ++seqN, id: o.id, action: 'upsert', order: toDoc(o) });
+  });
+  saveOrders();
+  lsSet(LS.queue, queue);
+  $('#impText').value = '';
+  imp.rows = [];
+  renderImport();
+  closeImport();
+  state.filter = done ? 'done' : 'todo';
+  document.querySelectorAll('.filters .pill').forEach(x => x.setAttribute('aria-pressed', String(x.dataset.filter === state.filter)));
+  renderAll();
+  updateSyncUI();
+  toast(`${ok.length} ${ok.length === 1 ? 'order' : 'orders'} imported${configured() ? '. Uploading to the Google Sheet…' : '.'}`);
+  if (current !== 'queue') go('queue');
+  flush();
+});
 
 /* ================= toast ================= */
 let toastTimer = null;
