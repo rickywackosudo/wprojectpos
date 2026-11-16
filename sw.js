@@ -36,6 +36,9 @@ self.addEventListener('fetch', (event) => {
   }
   if (url.origin !== self.location.origin) return;            // Google Apps Script, WhatsApp, etc.
   if (url.pathname === '/api' || url.pathname.startsWith('/api/') || url.pathname.startsWith('/.netlify/')) return;
+  // The public studio page (/studio/) and its works.json always come straight from the network.
+  const studio = new URL('studio', self.registration.scope).pathname;
+  if (url.pathname === studio || url.pathname.startsWith(studio + '/')) return;
 
   // The page: network first, cached copy when offline.
   if (req.mode === 'navigate') {
