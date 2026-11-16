@@ -1,7 +1,59 @@
 {
   "studio": {
-    "whatsapp": "",
-    "instagram": ""
+    "whatsapp": "+6281 1205 438",
+    "instagram": "the.w.project"
   },
-  "works": []
+  "works": [
+    {
+      "title": "Avante Mk.III Red",
+      "image": "works/avante mkiii red.jpeg"
+    },
+    {
+      "title": "WB Sonic",
+      "image": "works/wb sonic .jpeg"
+    },
+    {
+      "title": "Dual Ridge Japan Style",
+      "image": "works/dual ridge japan style.jpeg"
+    },
+    {
+      "title": "WB Gundam Style",
+      "image": "works/wb gundam style.jpeg"
+    },
+    {
+      "title": "Avante Mk.III Freedom",
+      "image": "works/avante mkiii freedom.jpeg"
+    },
+    {
+      "title": "WB Cyborg",
+      "image": "works/wb cyborg.jpeg"
+    },
+    {
+      "title": "Dual Ridge SFM",
+      "image": "works/dual ridge sfm.jpeg"
+    },
+    {
+      "title": "WB Anime",
+      "image": "works/wb anime.jpeg"
+    },
+    {
+      "title": "Avante Mk.III Gundam Style",
+      "image": "works/avante mkiii gundam style.jpeg"
+    },
+    {
+      "title": "WB Racing",
+      "image": "works/wb racing.jpeg"
+    },
+    {
+      "title": "WB Full Pattern",
+      "image": "works/wb full pattern.jpeg"
+    },
+    {
+      "title": "WB Magnum",
+      "image": "works/wb magnum.jpeg"
+    }
+  ]
 }
+     
+  ]
+  ]
