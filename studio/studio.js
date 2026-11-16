@@ -153,15 +153,25 @@ function rng(seed) { return () => { seed |= 0; seed = seed + 0x6D2B79F5 | 0; let
 function extractImage(img) {
   const nw = img.naturalWidth, nh = img.naturalHeight;
   if (!nw || !nh) return null;
-  const s = Math.min(1, 72 / Math.max(nw, nh)), w = Math.max(1, Math.round(nw * s)), h = Math.max(1, Math.round(nh * s));
+  const s = Math.min(1, 96 / Math.max(nw, nh)), w = Math.max(1, Math.round(nw * s)), h = Math.max(1, Math.round(nh * s));
   const cv = D.createElement('canvas'); cv.width = w; cv.height = h;
   const cx = cv.getContext('2d', { willReadFrequently: true });
   cx.drawImage(img, 0, 0, w, h);
   const px = cx.getImageData(0, 0, w, h).data;             // throws on a cross-site image without CORS
-  const pts = [];
-  for (let i = 0; i < px.length; i += 4) if (px[i + 3] > 200) pts.push(rgb2lab([px[i], px[i + 1], px[i + 2]]));
+  // Every pixel is weighted towards the centre (where the body sits) and flagged when it lies on the photo's edge,
+  // so the table, cutting mat or backdrop around the body can be recognised and left out of the palette.
+  const pts = [], wt = [], edge = [];
+  const bw = Math.max(2, Math.round(w * .09)), bh = Math.max(2, Math.round(h * .09));
+  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+    const i = (y * w + x) * 4;
+    if (px[i + 3] <= 200) continue;
+    pts.push(rgb2lab([px[i], px[i + 1], px[i + 2]]));
+    const dx = Math.abs((x + .5) / w * 2 - 1), dy = Math.abs((y + .5) / h * 2 - 1);
+    wt.push(1 - .7 * Math.max(dx, dy) ** 2);
+    edge.push(x < bw || x >= w - bw || y < bh || y >= h - bh ? 1 : 0);
+  }
   if (pts.length < 8) return null;
-  const K = Math.min(6, pts.length), rand = rng(7), cent = [pts[Math.floor(rand() * pts.length)]];
+  const K = Math.min(8, pts.length), rand = rng(7), cent = [pts[Math.floor(rand() * pts.length)]];
   const d2 = (a, b) => (a[0] - b[0]) ** 2 + (a[1] - b[1]) ** 2 + (a[2] - b[2]) ** 2;
   while (cent.length < K) {                                 // k-means++ seeding, deterministic
     const ds = pts.map(p => Math.min(...cent.map(c => d2(p, c))));
@@ -175,13 +185,33 @@ function extractImage(img) {
     pts.forEach((p, i) => { let b = 0, bd = Infinity; cent.forEach((c, k) => { const d = d2(p, c); if (d < bd) { bd = d; b = k; } }); asg[i] = b; const s = sum[b]; s[0] += p[0]; s[1] += p[1]; s[2] += p[2]; s[3]++; });
     sum.forEach((s, k) => { if (s[3]) cent[k] = [s[0] / s[3], s[1] / s[3], s[2] / s[3]]; });
   }
-  const n = cent.map(() => 0); asg.forEach(k => n[k]++);
-  const cl = cent.map((c, k) => { const lch = lab2lch(c); return { rgb: lab2rgb(c), share: n[k] / pts.length, L: lch[0], C: lch[1], h: lch[2] }; }).filter(c => c.share > 0);
-  const chrom = cl.filter(c => c.C > .05 && c.share > .025).sort((a, b) => b.share * (.3 + b.C * 6) - a.share * (.3 + a.C * 6));
-  const byShare = cl.slice().sort((a, b) => b.share - a.share);
-  const lead = chrom[0] || byShare[0];
-  const second = chrom.find(c => c !== lead && hueDist(c.h, lead.h) > 35) || byShare.find(c => c !== lead && Math.abs(c.L - lead.L) > .25);
-  return { cols: [lead.rgb].concat(second ? [second.rgb] : []), swatches: byShare.slice(0, 5).map(c => rgb2hex(c.rgb)), from: 'photo' };
+  const n = cent.map(() => 0), cw = cent.map(() => 0), ce = cent.map(() => 0);
+  let tw = 0, te = 0;
+  asg.forEach((k, i) => { n[k]++; cw[k] += wt[i]; ce[k] += edge[i]; tw += wt[i]; te += edge[i]; });
+  const cl = cent.map((c, k) => {
+    const lch = lab2lch(c);
+    // bg: this color covers a real part of the photo's edge (mat, table, backdrop) rather than the painted body
+    return { lab: c, rgb: lab2rgb(c), share: cw[k] / tw, bg: te ? ce[k] / te > .14 : false, L: lch[0], C: lch[1], h: lch[2] };
+  }).filter((c, k) => n[k] > 0);
+  let subject = cl.filter(c => !c.bg);
+  if (!subject.some(c => c.share > .04)) subject = cl;      // the body fills the frame: nothing to leave out
+  // A paint color is usually split into lit and shaded clusters: group clusters of the same hue before comparing,
+  // then let the most vivid member of the winning group speak for it.
+  const groups = [];
+  subject.filter(c => c.C > .05).sort((a, b) => b.share - a.share).forEach(c => {
+    const g = groups.find(o => hueDist(o.h, c.h) < 24);
+    if (g) { g.m.push(c); g.share += c.share; g.cs += c.share * c.C; } else groups.push({ h: c.h, share: c.share, cs: c.share * c.C, m: [c] });
+  });
+  const pick = g => g.m.slice().sort((a, b) => b.C * Math.sqrt(b.share) - a.C * Math.sqrt(a.share))[0];
+  const ranked = groups.filter(g => g.share > .015).sort((a, b) => b.share * (.3 + 6 * b.cs / b.share) - a.share * (.3 + 6 * a.cs / a.share));
+  const byShare = subject.slice().sort((a, b) => b.share - a.share);
+  const lead = ranked.length ? pick(ranked[0]) : byShare[0];
+  const g2 = ranked.find(g => hueDist(g.h, lead.h) > 35);
+  const second = g2 ? pick(g2) : byShare.find(c => c !== lead && Math.abs(c.L - lead.L) > .25);
+  // swatches: the body's colors, near-duplicates merged
+  const sw = [];
+  byShare.forEach(c => { if (c.share > .012 && sw.length < 5 && !sw.some(o => Math.hypot(o.lab[0] - c.lab[0], o.lab[1] - c.lab[1], o.lab[2] - c.lab[2]) < .05)) sw.push(c); });
+  return { cols: [lead.rgb].concat(second ? [second.rgb] : []), swatches: sw.map(c => rgb2hex(c.rgb)), from: 'photo' };
 }
 
 /* ---------- reading colors and finish out of a paint spec ("Candy red to blue fade, gold flakes") ---------- */
@@ -806,7 +836,7 @@ function renderWorks(list, studio) {
   $('.works-src').innerHTML = nBoard && !nStudio
     ? `Finished orders from the order board <b>on this device</b>, shown as spec renders drawn from each paint spec. Only you can see these; add photos to <b>works.json</b> to publish them.`
     : nBoard ? `Studio portfolio, followed by finished orders from the order board <b>on this device</b> (only visible here).`
-    : `Finished builds from the studio. Each work sets its own colors, taken from the photo.`;
+    : `Work from the studio. Each piece sets its own colors, taken from the paint in the photo.`;
   grid.innerHTML = list.map((w, i) => `
     <a class="work lay-${i % 6}" href="#work/${encodeURIComponent(w.slug)}" data-i="${i}" data-cursor="view" data-cursor-label="View" style="--wacc:${w.pal.hex.acc};--won:${w.pal.hex.on}">
       <div class="work-media"><div class="wm-in">${mediaHTML(w, true)}</div><i class="wk-cor a"></i><i class="wk-cor b"></i><span class="work-view"><span>View work</span><span class="arr" aria-hidden="true">→</span></span></div>
