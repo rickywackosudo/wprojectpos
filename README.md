@@ -28,7 +28,9 @@ the process (a horizontal track on wide screens), **The Result** (the exhibition
 
 The exhibition is built from real data only. It stays hidden until there is something to show.
 
-1. Put the photos in `studio/works/` (JPG, PNG or WebP, about 1600–2400 px on the long side, under ~500 KB each).
+1. Put the images in `studio/works/`. WebP is preferred (quality ~85 keeps cartoon lines and neon colors clean at
+   about 100 KB per image); JPG and PNG work too. Use lowercase file names without spaces, such as
+   `avante-candy-fade.webp`, and keep each file under ~300 KB.
 2. Add one entry per work to `studio/works.json`:
 
 ```json
@@ -42,7 +44,7 @@ The exhibition is built from real data only. It stays hidden until there is some
       "title": "Avante Mk.III — Candy Fade",
       "body": "Avante Mk.III",
       "spec": "Candy red to blue fade, gold flakes",
-      "image": "works/avante-candy-fade.jpg",
+      "image": "works/avante-candy-fade.webp",
       "alt": "Avante Mk.III body painted candy red fading into blue",
       "year": 2026,
       "qty": 1
@@ -55,8 +57,10 @@ Every field except one of `image` / `body` / `title` is optional; empty fields a
 `colors` (a list of hex values such as `["#B3121F", "#1F5FD1"]`) overrides the automatic palette.
 `studio.whatsapp` and `studio.instagram` turn on the pre-order buttons; leave them empty to hide them.
 
-**Colors come from the artwork.** For each photo the page samples the image (k-means in OKLab), picks the dominant
-color and builds that work's palette from it: red → dark ground with red accents, blue → white or black ground with
+**Colors come from the artwork.** For each image the page samples the picture (k-means in OKLab). Colors that cover
+the image's edges (cutting mat, table, backdrop) count as background and are left out, and shades of one hue are
+grouped, so the palette comes from the body's paint. The leading paint color then sets that work's palette:
+red → dark ground with red accents, blue → white or black ground with
 blue accents, green → dark ground, yellow → black with a yellow highlight, purple → deep purple with neutrals.
 The work's own dominant color is never used as the full background, so the artwork keeps its edges. Text colors
 are adjusted to meet WCAG contrast (4.5:1 for body and small text, 3:1 for large type). Scrolling the exhibition and

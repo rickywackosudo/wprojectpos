@@ -343,8 +343,9 @@ const scenes = [];
 const scene = (el, fn, pre) => { const s = { el, fn, pre, top: 0, h: 0, sh: 0 }; scenes.push(s); return s; };
 let lastSy = scrollY, scrollVel = 0, docH = 1;
 
-function onScrollFrame() {
+function onScrollFrame(now) {
   const sy = scrollY;
+  cursorHit(now);
   scrollVel += sy - lastSy; lastSy = sy;
   scenes.forEach(s => { if (sy + VH > s.top - VH * .25 && sy < s.top + s.h + VH * .25) s.fn(sy, s); });
   chrome(sy);
@@ -836,7 +837,7 @@ function renderWorks(list, studio) {
   $('.works-src').innerHTML = nBoard && !nStudio
     ? `Finished orders from the order board <b>on this device</b>, shown as spec renders drawn from each paint spec. Only you can see these; add photos to <b>works.json</b> to publish them.`
     : nBoard ? `Studio portfolio, followed by finished orders from the order board <b>on this device</b> (only visible here).`
-    : `Work from the studio. Each piece sets its own colors, taken from the paint in the photo.`;
+    : `Work from the studio. Each piece sets its own colors, taken from its paint.`;
   grid.innerHTML = list.map((w, i) => `
     <a class="work lay-${i % 6}" href="#work/${encodeURIComponent(w.slug)}" data-i="${i}" data-cursor="view" data-cursor-label="View" style="--wacc:${w.pal.hex.acc};--won:${w.pal.hex.on}">
       <div class="work-media"><div class="wm-in">${mediaHTML(w, true)}</div><i class="wk-cor a"></i><i class="wk-cor b"></i><span class="work-view"><span>View work</span><span class="arr" aria-hidden="true">→</span></span></div>
@@ -868,7 +869,7 @@ const detail = $('#detail'), dMedia = $('#dMedia'), dTitle = $('#dTitle'), dFiel
 let dIdx = -1, dBusy = false, dByNav = false, dReturn = null;
 const inView = el => { const r = el.getBoundingClientRect(); return r.bottom > 0 && r.top < VH && r.right > 0 && r.left < VW; };
 function renderPalette(w) {
-  const lbl = w.palFrom === 'photo' ? 'Palette — extracted from the photo' : w.palFrom === 'spec' ? 'Palette — read from the paint spec' : w.palFrom === 'listed' ? 'Palette' : '';
+  const lbl = w.palFrom === 'photo' ? 'Palette — extracted from the artwork' : w.palFrom === 'spec' ? 'Palette — read from the paint spec' : w.palFrom === 'listed' ? 'Palette' : '';
   dPal.innerHTML = w.swatches.length ? `<p>${lbl}</p><div class="d-sw">${w.swatches.slice(0, 5).map(h => `<span><i style="background:${h}"></i>${h}</span>`).join('')}</div>` : '';
 }
 function fillDetail(i) {
@@ -1099,20 +1100,33 @@ if (FINE && !RM) {
     if ((e.pointerType !== 'mouse' && e.pointerType !== 'pen') || (!e.clientX && !e.clientY)) return;
     cur.x = e.clientX; cur.y = e.clientY;
     cursor.classList.remove('off');
-    const t = e.target.closest && e.target.closest('[data-cursor],a,button,input,label');
-    const s = t ? (t.dataset.cursor && t.dataset.cursor !== 'link' ? t.dataset.cursor : 'link') : '';
-    if (cursor.dataset.s !== s) {
-      cursor.dataset.s = s; cLabel.textContent = t && t.dataset.cursorLabel ? t.dataset.cursorLabel : '';
-      const wa = t && t.style.getPropertyValue('--wacc');
-      cursor.style.setProperty('--cacc', wa || ''); cursor.style.setProperty('--con', (t && t.style.getPropertyValue('--won')) || '');
-    }
+    cursorOver(e.target);
     if (!cur.on) { cur.on = true; addJob(cursorJob); }
   }, { passive: true });
   addEventListener('mouseout', e => { if (!e.relatedTarget) cursor.classList.add('off'); });
   addEventListener('pointerdown', () => cursor.classList.add('down'));
   addEventListener('pointerup', () => cursor.classList.remove('down'));
 }
-function resetCursor() { if (cursor) { cursor.dataset.s = ''; cLabel.textContent = ''; } }
+// The cursor's look follows what is under it: a link, a work ("View"), the logo ("Spray").
+function cursorOver(el) {
+  const t = el && el.closest && el.closest('[data-cursor],a,button,input,label');
+  const s = t ? (t.dataset.cursor && t.dataset.cursor !== 'link' ? t.dataset.cursor : 'link') : '';
+  if (cursor.dataset.s === s && cursor._t === t) return;
+  cursor._t = t; cursor.dataset.s = s; cLabel.textContent = t && t.dataset.cursorLabel ? t.dataset.cursorLabel : '';
+  cursor.style.setProperty('--cacc', (t && t.style.getPropertyValue('--wacc')) || '');
+  cursor.style.setProperty('--con', (t && t.style.getPropertyValue('--won')) || '');
+}
+// Scrolling moves the page under a still mouse: check what is under the cursor now and then while it scrolls.
+let hitT = 0, hitTO = 0;
+function cursorHit(now) {
+  if (!FINE || RM || cur.x < 0 || cursor.classList.contains('off')) return;
+  clearTimeout(hitTO);
+  hitTO = setTimeout(() => cursorOver(D.elementFromPoint(cur.x, cur.y)), 140);   // and once more when the scroll settles
+  if (now - hitT < 120) return;
+  hitT = now;
+  cursorOver(D.elementFromPoint(cur.x, cur.y));
+}
+function resetCursor() { if (cursor) { cursor.dataset.s = ''; cursor._t = null; cLabel.textContent = ''; } }
 function magnet(el) {
   if (!FINE || RM || el.dataset.mag) return;
   el.dataset.mag = '1';
